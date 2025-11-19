@@ -152,10 +152,14 @@ class FlashSaleAdmin(admin.ModelAdmin):
     discount_percentage_display.short_description = 'Giảm giá'
     
     def time_display(self, obj):
+        # FIX: Format dates as strings first, then pass to format_html
+        start_str = obj.start_time.strftime('%d/%m/%Y %H:%M')
+        end_str = obj.end_time.strftime('%d/%m/%Y %H:%M')
+        
         return format_html(
             '<div style="font-size: 11px;"><strong>Bắt đầu:</strong> {}<br><strong>Kết thúc:</strong> {}</div>',
-            obj.start_time.strftime('%d/%m/%Y %H:%M'),
-            obj.end_time.strftime('%d/%m/%Y %H:%M')
+            start_str,
+            end_str
         )
     time_display.short_description = 'Thời gian'
     
@@ -164,11 +168,13 @@ class FlashSaleAdmin(admin.ModelAdmin):
         
         if obj.is_running():
             remaining = obj.time_remaining()
-            hours = remaining // 3600
-            minutes = (remaining % 3600) // 60
+            hours = int(remaining // 3600)
+            minutes = int((remaining % 3600) // 60)
+            # FIX: Format time string first, then pass to format_html
+            time_str = f"{hours:02d}:{minutes:02d}"
             return format_html(
-                '<span style="background: #28a745; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">🔥 Đang diễn ra ({:02d}:{:02d})</span>',
-                hours, minutes
+                '<span style="background: #28a745; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">🔥 Đang diễn ra ({})</span>',
+                time_str
             )
         elif now < obj.start_time:
             return format_html(
@@ -200,10 +206,14 @@ class FlashSaleProductAdmin(admin.ModelAdmin):
     readonly_fields = ('sold_quantity',)
     
     def price_display(self, obj):
+        # FIX: Format prices as strings first to avoid format string conflicts
+        original_price_str = f"{obj.original_price:,}₫"
+        sale_price_str = f"{obj.sale_price:,}₫"
+        
         return format_html(
-            '<div><del style="color: #999;">{:,}₫</del><br><strong style="color: #dc3545; font-size: 14px;">{:,}₫</strong></div>',
-            obj.original_price,
-            obj.sale_price
+            '<div><del style="color: #999;">{}</del><br><strong style="color: #dc3545; font-size: 14px;">{}</strong></div>',
+            original_price_str,
+            sale_price_str
         )
     price_display.short_description = 'Giá'
     

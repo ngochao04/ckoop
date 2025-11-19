@@ -88,7 +88,7 @@ class Voucher(models.Model):
         verbose_name_plural = 'Voucher'
     
     def __str__(self):
-        return f"{self.code} - {self.name}"
+        return "{} - {}".format(self.code, self.name)
     
     def clean(self):
         if self.start_date >= self.end_date:
@@ -124,7 +124,8 @@ class Voucher(models.Model):
         
         # Kiểm tra giá trị đơn hàng tối thiểu
         if order_value < self.min_order_value:
-            return False, f"Đơn hàng tối thiểu {self.min_order_value:,}₫"
+            # FIX: Sử dụng format() thay vì f-string với :, để tránh lỗi
+            return False, "Đơn hàng tối thiểu {:,}đ".format(self.min_order_value)
         
         # Kiểm tra số lần đã dùng
         if self.usage_limit_per_user > 0:
@@ -182,7 +183,11 @@ class VoucherUsage(models.Model):
         verbose_name_plural = 'Lịch sử sử dụng voucher'
     
     def __str__(self):
-        return f"{self.user.username} - {self.voucher.code} - {self.discount_amount:,}₫"
+        return "{} - {} - {:,}đ".format(
+            self.user.username, 
+            self.voucher.code, 
+            self.discount_amount
+        )
 
 
 class FlashSale(models.Model):
@@ -256,7 +261,7 @@ class FlashSaleProduct(models.Model):
         verbose_name_plural = 'Sản phẩm Flash Sale'
     
     def __str__(self):
-        return f"{self.flash_sale.name} - {self.product.name}"
+        return "{} - {}".format(self.flash_sale.name, self.product.name)
     
     def is_available(self):
         """Còn hàng trong flash sale không"""
