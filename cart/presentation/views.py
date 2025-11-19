@@ -2,6 +2,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 from rest_framework.authentication import TokenAuthentication
+from django.shortcuts import get_object_or_404
+
 from cart.infrastructure.models import CartModel, CartItemModel
 from catalog.infrastructure.models import ProductModel
 
@@ -77,4 +79,80 @@ class MyCartApi(APIView):
             'items': items,
             'total_vnd': total,
             'total_items': total_items
+        })
+
+
+class CartItemUpdateApi(APIView):
+    """Cập nhật số lượng item trong giỏ"""
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def put(self, request, item_id):
+        user = request.user
+        new_qty = int(request.data.get('qty', 1))
+        
+        if new_qty <= 0:
+            return Response({
+                'detail': 'Số lượng phải lớn hơn 0'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Lấy item và kiểm tra quyền sở hữu
+        item = get_object_or_404(
+            CartItemModel.objects.select_related('cart'), 
+            id=item_id, 
+            cart__owner=user
+        )
+        
+        item.qty = new_qty
+        item.save()
+        
+        return Response({
+            'detail': 'Đã cập nhật số lượng',
+            'item_id': item.id,
+            'qty': item.qty,
+            'line_total': item.product.price_vnd * item.qty
+        })
+
+
+class CartItemRemoveApi(APIView):
+    """Xóa item khỏi giỏ hàng"""
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def delete(self, request, item_id):
+        user = request.user
+        
+        item = get_object_or_404(
+            CartItemModel.objects.select_related('cart'),
+            id=item_id,
+            cart__owner=user
+        )
+        
+        product_name = item.product.name
+        item.delete()
+        
+        return Response({
+            'detail': f'Đã xóa {product_name} khỏi giỏ hàng'
+        })
+
+
+class CartClearApi(APIView):
+    """Xóa toàn bộ giỏ hàng"""
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        cart = CartModel.objects.filter(owner=user).first()
+        
+        if cart:
+            items_count = cart.items.count()
+            cart.items.all().delete()
+            
+            return Response({
+                'detail': f'Đã xóa {items_count} sản phẩm khỏi giỏ hàng'
+            })
+        
+        return Response({
+            'detail': 'Giỏ hàng đã trống'
         })

@@ -1,6 +1,8 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.http import HttpResponse, JsonResponse
+from django.conf import settings
+from django.conf.urls.static import static
 
 def health(request): 
     return HttpResponse("OK")
@@ -40,6 +42,8 @@ def home(request):
                 'cancel': '/api/orders/{id}/cancel/',
                 'admin_orders': '/api/orders/admin/all/',
                 'update_status': '/api/orders/admin/{id}/status/',
+                'admin_dashboard': '/api/orders/admin/dashboard/',
+                'admin_customers': '/api/orders/admin/customers/',
             }
         }
     }, json_dumps_params={'indent': 2})
@@ -53,3 +57,8 @@ urlpatterns = [
     path('api/cart/', include('cart.presentation.urls')),
     path('api/orders/', include('orders.presentation.urls')),
 ]
+
+# Serve media files trong development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
