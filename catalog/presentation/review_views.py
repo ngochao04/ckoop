@@ -4,6 +4,7 @@ from rest_framework import status, permissions
 from rest_framework.authentication import TokenAuthentication
 from django.shortcuts import get_object_or_404
 from django.db.models import Avg, Count, Q
+from django.db import models
 
 from catalog.infrastructure.models import ProductModel, ProductReview, ReviewHelpful
 from orders.infrastructure.models import OrderModel, OrderLineModel
