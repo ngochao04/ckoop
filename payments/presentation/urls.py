@@ -5,7 +5,7 @@ from .views import (
     AdminPendingPaymentsApi, MyPaymentsApi
 )
 from .gateway_views import (
-    VNPayCreatePaymentApi, VNPayReturnView,
+    VNPayCreatePaymentApi, VNPayReturnView,VNPayIPNView, 
     MoMoCreatePaymentApi, MoMoReturnView, MoMoNotifyView,
     TestPaymentSuccessView
 )
@@ -23,6 +23,7 @@ urlpatterns = [
     # VNPay
     path('vnpay/create/', VNPayCreatePaymentApi.as_view(), name='vnpay_create'),
     path('vnpay/return/', VNPayReturnView.as_view(), name='vnpay_return'),
+    path('vnpay/ipn/', VNPayIPNView.as_view(), name='vnpay_ipn'),
     
     # MoMo
     path('momo/create/', MoMoCreatePaymentApi.as_view(), name='momo_create'),

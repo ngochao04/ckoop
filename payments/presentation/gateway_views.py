@@ -127,7 +127,86 @@ class VNPayReturnView(APIView):
         # Redirect về frontend với thông tin
         frontend_url = f"http://127.0.0.1:8000/payment-success?order_id={payment.order.id}&payment_id={payment.id}"
         return redirect(frontend_url)
-
+@method_decorator(csrf_exempt, name='dispatch')
+class VNPayIPNView(APIView):
+    """
+    IPN URL - Nhận thông báo từ server VNPay
+    Đây là callback QUAN TRỌNG NHẤT để cập nhật database
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    def get(self, request):
+        """
+        VNPay server gọi URL này để thông báo kết quả
+        """
+        input_data = dict(request.query_params)
+        
+        # 1. Xác thực chữ ký
+        is_valid, message = vnpay_service.verify_return_data(input_data)
+        
+        if not is_valid:
+            return JsonResponse({
+                'RspCode': '97',
+                'Message': 'Invalid signature'
+            })
+        
+        # 2. Lấy thông tin
+        txn_ref = input_data.get('vnp_TxnRef', '')
+        vnp_transaction_no = input_data.get('vnp_TransactionNo', '')
+        vnp_response_code = input_data.get('vnp_ResponseCode', '')
+        vnp_amount = int(input_data.get('vnp_Amount', 0)) // 100
+        
+        # 3. Tìm payment
+        try:
+            payment = Payment.objects.get(transaction_id=txn_ref)
+        except Payment.DoesNotExist:
+            return JsonResponse({
+                'RspCode': '01',
+                'Message': 'Order not found'
+            })
+        
+        # 4. Kiểm tra số tiền
+        if payment.amount != vnp_amount:
+            return JsonResponse({
+                'RspCode': '04',
+                'Message': 'Invalid amount'
+            })
+        
+        # 5. Kiểm tra trạng thái (tránh update trùng)
+        if payment.status == Payment.Status.PAID:
+            return JsonResponse({
+                'RspCode': '02',
+                'Message': 'Order already confirmed'
+            })
+        
+        # 6. Cập nhật dựa trên response code
+        if vnp_response_code == '00':
+            # Thanh toán thành công
+            payment.mark_as_paid(
+                transaction_id=vnp_transaction_no,
+                gateway_response={
+                    'vnp_ipn': input_data,
+                    'verified': True
+                }
+            )
+            
+            return JsonResponse({
+                'RspCode': '00',
+                'Message': 'Confirm Success'
+            })
+        else:
+            # Thanh toán thất bại
+            payment.status = Payment.Status.FAILED
+            payment.gateway_response = {
+                'vnp_ipn': input_data,
+                'error_code': vnp_response_code
+            }
+            payment.save()
+            
+            return JsonResponse({
+                'RspCode': '00',
+                'Message': 'Confirm Success'
+            })
 
 class MoMoCreatePaymentApi(APIView):
     """Tạo thanh toán MoMo"""

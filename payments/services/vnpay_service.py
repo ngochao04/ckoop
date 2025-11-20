@@ -52,10 +52,13 @@ class VNPayService:
             (payment_url, txn_ref)
         """
         # Tạo mã giao dịch (txnRef) - unique
-        txn_ref = f"CLEANAGRI{order_id}{datetime.now().strftime('%Y%m%d%H%M%S')}"
+        txn_ref = f"ORDER{order_id}"
         
         # Thời gian tạo (yyyyMMddHHmmss)
         create_date = datetime.now().strftime('%Y%m%d%H%M%S')
+        
+        # Làm sạch order_info - chỉ giữ chữ và số, không dấu
+        clean_order_info = f"Thanh toan don hang {order_id}"
         
         # Chuẩn bị data (KHÔNG BAO GỒM vnp_SecureHash)
         vnpay_data = {
@@ -65,7 +68,7 @@ class VNPayService:
             'vnp_Amount': str(amount * 100),  # VNPay yêu cầu nhân 100
             'vnp_CurrCode': 'VND',
             'vnp_TxnRef': txn_ref,
-            'vnp_OrderInfo': order_info,
+            'vnp_OrderInfo': clean_order_info,
             'vnp_OrderType': 'other',
             'vnp_Locale': 'vn',
             'vnp_ReturnUrl': self.return_url,
