@@ -44,6 +44,11 @@ def home(request):
                 'update_status': '/api/orders/admin/{id}/status/',
                 'admin_dashboard': '/api/orders/admin/dashboard/',
                 'admin_customers': '/api/orders/admin/customers/',
+            },
+            'payments': {  # ← THÊM
+                'methods': '/api/payments/methods/',
+                'vnpay': '/api/payments/vnpay/create/',
+                'momo': '/api/payments/momo/create/',
             }
         }
     }, json_dumps_params={'indent': 2})
