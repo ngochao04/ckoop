@@ -51,7 +51,7 @@ class VNPayCreatePaymentApi(APIView):
             payment.save()
         
         # Tạo payment URL
-        order_info = f"Thanh toán đơn hàng #{order.id} - CleanAgri"
+        order_info = f"Thanh toan don hang {order.id}"
         ip_addr = self._get_client_ip(request)
         
         payment_url, txn_ref = vnpay_service.create_payment_url(
@@ -167,7 +167,7 @@ class MoMoCreatePaymentApi(APIView):
             payment.save()
         
         # Tạo thanh toán MoMo
-        order_info = f"Thanh toan don hang #{order.id} - CleanAgri"
+        order_info = f"Thanh toan don hang {order.id} - CleanAgri"
         
         success, result, response_data = momo_service.create_payment(
             order_id=order.id,

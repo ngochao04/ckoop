@@ -2,7 +2,7 @@ import hashlib
 import hmac
 import urllib.parse
 from datetime import datetime
-from typing import Dict, Optional
+from typing import Dict, Tuple
 import os
 
 
@@ -38,7 +38,7 @@ class VNPayService:
         amount: int, 
         order_info: str,
         ip_addr: str = '127.0.0.1'
-    ) -> str:
+    ) -> Tuple[str, str]:
         """
         Tạo URL thanh toán VNPay
         
@@ -49,7 +49,7 @@ class VNPayService:
             ip_addr: IP người dùng
         
         Returns:
-            URL thanh toán VNPay
+            (payment_url, txn_ref)
         """
         # Tạo mã giao dịch (txnRef) - unique
         txn_ref = f"CLEANAGRI{order_id}{datetime.now().strftime('%Y%m%d%H%M%S')}"
@@ -57,7 +57,7 @@ class VNPayService:
         # Thời gian tạo (yyyyMMddHHmmss)
         create_date = datetime.now().strftime('%Y%m%d%H%M%S')
         
-        # Chuẩn bị data
+        # Chuẩn bị data (KHÔNG BAO GỒM vnp_SecureHash)
         vnpay_data = {
             'vnp_Version': '2.1.0',
             'vnp_Command': 'pay',
@@ -73,8 +73,11 @@ class VNPayService:
             'vnp_CreateDate': create_date
         }
         
-        # Tạo chữ ký
-        vnpay_data['vnp_SecureHash'] = self._create_signature(vnpay_data)
+        # Tạo chữ ký từ data (KHÔNG có vnp_SecureHash)
+        secure_hash = self._create_signature(vnpay_data)
+        
+        # Thêm secure hash VÀO URL (không thêm vào dict để tính signature)
+        vnpay_data['vnp_SecureHash'] = secure_hash
         
         # Tạo URL
         query_string = urllib.parse.urlencode(vnpay_data)
@@ -82,7 +85,7 @@ class VNPayService:
         
         return payment_url, txn_ref
     
-    def verify_return_data(self, query_params: Dict[str, str]) -> tuple[bool, str]:
+    def verify_return_data(self, query_params: Dict[str, str]) -> Tuple[bool, str]:
         """
         Xác thực dữ liệu trả về từ VNPay
         
@@ -126,6 +129,7 @@ class VNPayService:
             '24': 'Khách hàng hủy giao dịch',
             '51': 'Tài khoản không đủ số dư',
             '65': 'Tài khoản đã vượt quá hạn mức giao dịch trong ngày',
+            '72': 'Không tìm thấy website hoặc thông tin không hợp lệ',
             '75': 'Ngân hàng thanh toán đang bảo trì',
             '79': 'Giao dịch vượt quá số lần nhập sai mật khẩu',
             '99': 'Lỗi không xác định'
