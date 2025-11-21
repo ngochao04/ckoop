@@ -248,9 +248,61 @@ function loadProductDetail() {
 }
 
 function loadReviews() {
-    // This would call an API to get reviews
-    // For now, show placeholder
-    document.getElementById('reviews-count').textContent = '0';
+    fetch(`/api/catalog/products/${productId}/reviews/`)
+        .then(res => res.json())
+        .then(data => {
+            console.log('Reviews loaded:', data);
+            
+            const reviewsList = document.getElementById('reviews-list');
+            document.getElementById('reviews-count').textContent = 
+                data.rating_stats?.total_reviews || '0';
+            
+            if (data.reviews && data.reviews.length > 0) {
+                reviewsList.innerHTML = data.reviews.map(review => `
+                    <div class="mb-4 pb-4 border-bottom">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <h6 class="mb-2">${review.title}</h6>
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="text-warning me-3" style="font-size: 14px;">
+                                        ${Array(review.rating).fill('⭐').join('')}
+                                        ${Array(5 - review.rating).fill('☆').join('')}
+                                    </div>
+                                    <small class="text-muted">
+                                        ${review.user.username}
+                                        ${review.is_verified_purchase ? 
+                                            '<span class="badge bg-success ms-2">✓ Đã mua</span>' : ''}
+                                    </small>
+                                </div>
+                                <p class="mb-2">${review.content}</p>
+                                <small class="text-muted">
+                                    ${new Date(review.created_at).toLocaleDateString('vi-VN')}
+                                </small>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <button class="btn btn-sm btn-outline-secondary" 
+                                        onclick="markReviewHelpful(${review.id})">
+                                    <i class="fas fa-thumbs-up me-1"></i>
+                                    Hữu ích (${review.helpful_count})
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                // Hiển thị rating distribution
+                if (data.rating_stats) {
+                    console.log('Rating distribution:', data.rating_stats.rating_distribution);
+                }
+            } else {
+                reviewsList.innerHTML = '<p class="text-center text-muted">Chưa có đánh giá nào</p>';
+            }
+        })
+        .catch(err => {
+            console.error('Error loading reviews:', err);
+            document.getElementById('reviews-list').innerHTML = 
+                '<p class="text-muted">Không thể tải đánh giá</p>';
+        });
 }
 
 function loadRelatedProducts(categoryId) {
@@ -366,12 +418,75 @@ function submitReview(event) {
         return;
     }
     
-    const reviewText = document.getElementById('review-text').value;
+    if (selectedRating === 0) {
+        alert('Vui lòng chọn số sao');
+        return;
+    }
     
-    // This would call an API to submit review
-    alert('Cảm ơn bạn đã đánh giá sản phẩm!');
-    document.getElementById('review-form').reset();
-    setRating(5);
+    const reviewText = document.getElementById('review-text').value.trim();
+    if (!reviewText) {
+        alert('Vui lòng nhập nội dung đánh giá');
+        return;
+    }
+    
+    // ✅ SỬA: Gọi đúng endpoint
+    fetch(`/api/catalog/products/${productId}/reviews/create/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Token ' + token
+        },
+        body: JSON.stringify({
+            rating: selectedRating,
+            title: reviewText.substring(0, 50), // Lấy 50 ký tự đầu làm title
+            content: reviewText
+        })
+    })
+    .then(res => {
+        if (!res.ok) {
+            return res.json().then(err => {
+                throw new Error(err.detail || 'Lỗi gửi đánh giá');
+            });
+        }
+        return res.json();
+    })
+    .then(data => {
+        console.log('Review submitted:', data);
+        alert('✓ Cảm ơn bạn đã đánh giá sản phẩm!');
+        document.getElementById('review-form').reset();
+        setRating(5); // Reset rating về 5 sao
+        loadReviews(); // Reload danh sách đánh giá
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('❌ ' + err.message);
+    });
+}
+
+
+function markReviewHelpful(reviewId) {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+        alert('Vui lòng đăng nhập');
+        return;
+    }
+    
+    fetch(`/api/catalog/reviews/${reviewId}/helpful/`, {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Token ' + token
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log('Mark helpful:', data);
+        loadReviews(); // Reload để cập nhật helpful count
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('Không thể đánh dấu');
+    });
 }
 
 function formatPrice(price) {

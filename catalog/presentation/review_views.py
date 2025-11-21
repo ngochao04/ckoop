@@ -100,23 +100,36 @@ class ProductReviewCreateApi(APIView):
         """Viết đánh giá cho sản phẩm"""
         product = get_object_or_404(ProductModel, id=product_id)
         
+        # ✅ Lấy dữ liệu từ request
         rating = request.data.get('rating')
         title = request.data.get('title', '')
         content = request.data.get('content', '')
         order_id = request.data.get('order_id')  # Optional
         
         # Validate
-        if not rating or int(rating) < 1 or int(rating) > 5:
+        if not rating:
+            return Response({
+                'detail': 'Rating là bắt buộc'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            rating = int(rating)
+        except (ValueError, TypeError):
+            return Response({
+                'detail': 'Rating phải là số'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        if rating < 1 or rating > 5:
             return Response({
                 'detail': 'Rating phải từ 1-5'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        if not content:
+        if not content or not content.strip():
             return Response({
                 'detail': 'Nội dung đánh giá là bắt buộc'
             }, status=status.HTTP_400_BAD_REQUEST)
         
-        # Kiểm tra đã mua hàng chưa (nếu có order_id)
+        # Kiểm tra đã mua hàng chưa
         is_verified_purchase = False
         order = None
         
@@ -128,7 +141,6 @@ class ProductReviewCreateApi(APIView):
             ).first()
             
             if order:
-                # Kiểm tra order có chứa sản phẩm này không
                 has_product = OrderLineModel.objects.filter(
                     order=order,
                     product_name=product.name
@@ -137,7 +149,8 @@ class ProductReviewCreateApi(APIView):
                 if has_product:
                     is_verified_purchase = True
         
-        # Kiểm tra đã đánh giá chưa
+        # ✅ KIỂM TRA: Đã đánh giá chưa
+        # Cho phép user đánh giá lại (xóa review cũ trước khi tạo mới)
         existing_review = ProductReview.objects.filter(
             product=product,
             user=request.user,
@@ -145,31 +158,37 @@ class ProductReviewCreateApi(APIView):
         ).first()
         
         if existing_review:
+            # Xóa review cũ để user có thể đánh giá lại
+            existing_review.delete()
+        
+        # ✅ TẠO review mới
+        try:
+            review = ProductReview.objects.create(
+                product=product,
+                user=request.user,
+                order=order,
+                rating=rating,
+                title=title,
+                content=content,
+                is_verified_purchase=is_verified_purchase
+            )
+            
             return Response({
-                'detail': 'Bạn đã đánh giá sản phẩm này rồi'
+                'detail': 'Đã tạo đánh giá thành công',
+                'review': {
+                    'id': review.id,
+                    'rating': review.rating,
+                    'title': review.title,
+                    'is_verified_purchase': review.is_verified_purchase,
+                    'created_at': review.created_at
+                }
+            }, status=status.HTTP_201_CREATED)
+        
+        except Exception as e:
+            print(f'Error creating review: {str(e)}')
+            return Response({
+                'detail': f'Lỗi khi tạo đánh giá: {str(e)}'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Tạo review
-        review = ProductReview.objects.create(
-            product=product,
-            user=request.user,
-            order=order,
-            rating=int(rating),
-            title=title,
-            content=content,
-            is_verified_purchase=is_verified_purchase
-        )
-        
-        return Response({
-            'detail': 'Đã tạo đánh giá thành công',
-            'review': {
-                'id': review.id,
-                'rating': review.rating,
-                'title': review.title,
-                'is_verified_purchase': review.is_verified_purchase,
-                'created_at': review.created_at
-            }
-        }, status=status.HTTP_201_CREATED)
 
 
 class ReviewHelpfulApi(APIView):

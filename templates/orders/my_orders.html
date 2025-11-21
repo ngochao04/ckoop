@@ -74,6 +74,7 @@ function loadOrders() {
         return;
     }
     
+    // ✅ SỬA: /api/orders/my/ là đúng
     let url = '/api/orders/my/';
     if (currentFilter !== 'all') {
         url += `?status=${currentFilter}`;

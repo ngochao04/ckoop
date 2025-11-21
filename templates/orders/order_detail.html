@@ -90,8 +90,15 @@ FILE 1: templates/orders/order_detail.html
     </div>
 </div>
 
+<!-- Thay thế phần script ở cuối file -->
 <script>
-const orderId = {{ order_id }};
+// ✅ SỬA: Lấy order_id từ URL path
+const pathParts = window.location.pathname.split('/');
+const orderId = pathParts[pathParts.length - 2];
+
+if (!orderId || isNaN(orderId)) {
+    document.body.innerHTML = '<div class="container mt-5"><div class="alert alert-danger">ID đơn hàng không hợp lệ</div></div>';
+}
 
 function loadOrderDetail() {
     const token = localStorage.getItem('token');
@@ -107,14 +114,17 @@ function loadOrderDetail() {
         }
     })
     .then(res => {
-        if (!res.ok) throw new Error('Order not found');
+        if (!res.ok) {
+            if (res.status === 404) throw new Error('Order not found');
+            throw new Error(`HTTP ${res.status}`);
+        }
         return res.json();
     })
     .then(order => {
         document.getElementById('order-loading').style.display = 'none';
         document.getElementById('order-detail').style.display = 'block';
         
-        // Update order info
+        // Cập nhật thông tin đơn hàng
         document.getElementById('order-code').textContent = `#${order.id}`;
         document.getElementById('order-date').textContent = formatDate(order.created_at);
         document.getElementById('order-status-badge').innerHTML = `
@@ -123,37 +133,46 @@ function loadOrderDetail() {
             </span>
         `;
         
-        // Update delivery info
+        // Cập nhật địa chỉ giao hàng
         if (order.delivery_address) {
-            document.getElementById('delivery-name').textContent = order.delivery_address.full_name;
-            document.getElementById('delivery-phone').textContent = order.delivery_address.phone;
-            document.getElementById('delivery-address').textContent = order.delivery_address.full_address;
+            document.getElementById('delivery-name').textContent = order.delivery_address.full_name || '-';
+            document.getElementById('delivery-phone').textContent = order.delivery_address.phone || '-';
+            document.getElementById('delivery-address').textContent = order.delivery_address.full_address || '-';
+        } else {
+            document.getElementById('delivery-name').textContent = 'Chưa có';
+            document.getElementById('delivery-phone').textContent = 'Chưa có';
+            document.getElementById('delivery-address').textContent = 'Chưa có';
         }
         
-        // Update items
-        const itemsHtml = order.items.map(item => `
-            <tr>
-                <td>
-                    <div class="d-flex align-items-center">
-                        <img src="${item.product.thumbnail || '{% static "img/default-product.jpg" %}'}" 
-                             class="img-fluid rounded" style="width: 60px; height: 60px; object-fit: cover;" alt="">
-                        <span class="ms-3">${item.product.name}</span>
-                    </div>
-                </td>
-                <td>${formatPrice(item.price_vnd)}</td>
-                <td>${item.qty}</td>
-                <td>${formatPrice(item.line_total)}</td>
-            </tr>
-        `).join('');
-        document.getElementById('order-items').innerHTML = itemsHtml;
+        // Cập nhật danh sách sản phẩm
+        if (order.items && order.items.length > 0) {
+            const itemsHtml = order.items.map(item => `
+                <tr>
+                    <td>
+                        <div class="d-flex align-items-center">
+                            <img src="${item.product?.thumbnail || '/static/img/default-product.jpg'}" 
+                                 class="img-fluid rounded" 
+                                 style="width: 60px; height: 60px; object-fit: cover;" 
+                                 alt="${item.product?.name || 'Product'}"
+                                 onerror="this.src='/static/img/default-product.jpg'">
+                            <span class="ms-3">${item.product?.name || 'Sản phẩm'}</span>
+                        </div>
+                    </td>
+                    <td>${formatPrice(item.price_vnd)}</td>
+                    <td>${item.qty}</td>
+                    <td>${formatPrice(item.line_total)}</td>
+                </tr>
+            `).join('');
+            document.getElementById('order-items').innerHTML = itemsHtml;
+        }
         
-        // Update totals
+        // Cập nhật tổng tiền
         document.getElementById('subtotal').textContent = formatPrice(order.total_vnd);
         document.getElementById('total').textContent = formatPrice(order.total_vnd);
         
-        // Show actions based on status
+        // Hiển thị các thao tác tùy theo trạng thái
         let actionsHtml = '';
-        if (order.status === 'wait') {
+        if (order.status === 'new' || order.status === 'wait') {
             actionsHtml = `
                 <button onclick="cancelOrder()" class="btn btn-danger w-100 rounded-pill py-3">
                     Hủy đơn hàng
@@ -170,13 +189,55 @@ function loadOrderDetail() {
     })
     .catch(err => {
         console.error('Error:', err);
-        document.getElementById('order-loading').innerHTML = `
+        document.getElementById('order-loading').style.display = 'none';
+        document.getElementById('order-detail').innerHTML = `
             <div class="alert alert-danger">
-                Không thể tải thông tin đơn hàng
+                <h5>Không thể tải thông tin đơn hàng</h5>
+                <p>${err.message}</p>
             </div>
             <a href="/orders/my/" class="btn btn-primary">Quay lại danh sách đơn hàng</a>
         `;
     });
+}
+
+// Helper functions
+function formatPrice(price) {
+    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
+}
+
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('vi-VN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+function getStatusText(status) {
+    const statuses = {
+        'new': 'Mới tạo',
+        'wait': 'Chờ xác nhận',
+        'paid': 'Đã xác nhận',
+        'ship': 'Đang giao hàng',
+        'done': 'Hoàn thành',
+        'cancel': 'Đã hủy'
+    };
+    return statuses[status] || status;
+}
+
+function getStatusBadgeClass(status) {
+    const classes = {
+        'new': 'bg-secondary',
+        'wait': 'bg-warning',
+        'paid': 'bg-info',
+        'ship': 'bg-primary',
+        'done': 'bg-success',
+        'cancel': 'bg-danger'
+    };
+    return classes[status] || 'bg-secondary';
 }
 
 function cancelOrder() {
@@ -205,59 +266,7 @@ function reorder() {
     alert('Chức năng đang được phát triển');
 }
 
-function getStatusText(status) {
-    const statuses = {
-        'wait': 'Chờ xác nhận',
-        'paid': 'Đã xác nhận',
-        'ship': 'Đang giao hàng',
-        'done': 'Hoàn thành',
-        'cancel': 'Đã hủy'
-    };
-    return statuses[status] || status;
-}
-
-function getStatusBadgeClass(status) {
-    const classes = {
-        'wait': 'bg-warning',
-        'paid': 'bg-info',
-        'ship': 'bg-primary',
-        'done': 'bg-success',
-        'cancel': 'bg-danger'
-    };
-    return classes[status] || 'bg-secondary';
-}
-
-function formatPrice(price) {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
-}
-
-function formatDate(dateStr) {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('vi-VN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
-// Load order on page load
-loadOrderDetail();
+// Khởi tạo khi trang load
+document.addEventListener('DOMContentLoaded', loadOrderDetail);
 </script>
 {% endblock %}
-
-
-FILE 2: Fix home.html product links
-=====================================
-Trong file templates/home.html, tìm và sửa:
-
-TÌM (dòng ~220):
-<a href="/shop/detail/?id=${product.id}" class="btn border border-secondary rounded-pill px-3 text-primary">
-    <i class="fa fa-eye me-2 text-primary"></i> Xem
-</a>
-
-ĐỔI THÀNH:
-<a href="/shop/detail/?id=${product.id}" class="btn border border-secondary rounded-pill px-3 text-primary">
-    <i class="fa fa-shopping-bag me-2 text-primary"></i> Xem
-</a>
