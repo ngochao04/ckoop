@@ -43,6 +43,67 @@
 </div>
 <!-- Hero End -->
 
+<!-- Flash Sale Section -->
+<div class="container-fluid py-5" id="flash-sale-section" style="display:none;">
+    <div class="container">
+        <div class="bg-light rounded p-5">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h2 class="text-danger mb-3">
+                        <i class="fas fa-bolt"></i> FLASH SALE
+                    </h2>
+                    <h4 id="flash-sale-name">Đang tải...</h4>
+                    <p id="flash-sale-description"></p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <div class="d-flex justify-content-end align-items-center">
+                        <div class="me-3">
+                            <h5>Kết thúc trong:</h5>
+                        </div>
+                        <div class="d-flex">
+                            <div class="text-center mx-2">
+                                <div class="bg-primary text-white rounded p-3">
+                                    <h3 class="mb-0" id="hours">00</h3>
+                                </div>
+                                <small>Giờ</small>
+                            </div>
+                            <div class="text-center mx-2">
+                                <div class="bg-primary text-white rounded p-3">
+                                    <h3 class="mb-0" id="minutes">00</h3>
+                                </div>
+                                <small>Phút</small>
+                            </div>
+                            <div class="text-center mx-2">
+                                <div class="bg-primary text-white rounded p-3">
+                                    <h3 class="mb-0" id="seconds">00</h3>
+                                </div>
+                                <small>Giây</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row g-4 mt-3" id="flash-sale-products">
+                <!-- Flash sale products will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Vouchers Section -->
+<div class="container-fluid py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5">
+            <i class="fas fa-gift text-primary"></i> Mã giảm giá dành cho bạn
+        </h2>
+        <div class="row g-4" id="vouchers-section">
+            <div class="col-12 text-center">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Features Section Start -->
 <div class="container-fluid featurs py-5">
     <div class="container py-5">
@@ -75,7 +136,7 @@
                         <i class="fas fa-exchange-alt fa-3x text-white"></i>
                     </div>
                     <div class="featurs-content text-center">
-                        <h5">Đổi trả 30 ngày</h5>
+                        <h5>Đổi trả 30 ngày</h5>
                         <p class="mb-0">Hoàn tiền trong 30 ngày</p>
                     </div>
                 </div>
@@ -102,32 +163,17 @@
         <div class="tab-class text-center">
             <div class="row g-4">
                 <div class="col-lg-4 text-start">
-                    <h1>Sản phẩm hữu cơ</h1>
+                    <h1>Sản phẩm nổi bật</h1>
                 </div>
                 <div class="col-lg-8 text-end">
-                    <ul class="nav nav-pills d-inline-flex text-center mb-5">
-                        <li class="nav-item">
-                            <a class="d-flex m-2 py-2 bg-light rounded-pill active" data-bs-toggle="pill" href="#tab-1">
-                                <span class="text-dark" style="width: 130px;">Tất cả</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="d-flex py-2 m-2 bg-light rounded-pill" data-bs-toggle="pill" href="#tab-2">
-                                <span class="text-dark" style="width: 130px;">Rau củ</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="d-flex m-2 py-2 bg-light rounded-pill" data-bs-toggle="pill" href="#tab-3">
-                                <span class="text-dark" style="width: 130px;">Trái cây</span>
-                            </a>
-                        </li>
-                    </ul>
+                    <a href="{% url 'shop' %}" class="btn border-secondary rounded-pill px-4 py-3 text-primary">
+                        Xem tất cả <i class="fas fa-arrow-right ms-2"></i>
+                    </a>
                 </div>
             </div>
-            <div class="tab-content">
-                <div id="tab-1" class="tab-pane fade show p-0 active">
+            <div class="tab-content mt-4">
+                <div class="tab-pane fade show p-0 active">
                     <div class="row g-4" id="products-container">
-                        <!-- Products will be loaded here via JavaScript -->
                         <div class="col-12 text-center">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Đang tải...</span>
@@ -141,9 +187,191 @@
 </div>
 <!-- Products Section End -->
 
+<!-- Testimonials Section -->
+<div class="container-fluid py-5 bg-light">
+    <div class="container">
+        <h2 class="text-center mb-5">Khách hàng nói gì về chúng tôi</h2>
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="testimonial-item bg-white rounded p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="{% static 'img/avatar.jpg' %}" class="img-fluid rounded-circle" style="width: 60px; height: 60px;" alt="">
+                        <div class="ms-3">
+                            <h5 class="mb-1">Nguyễn Văn A</h5>
+                            <div class="text-warning">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mb-0">"Rau củ tươi ngon, đóng gói cẩn thận. Giao hàng nhanh chóng. Rất hài lòng!"</p>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="testimonial-item bg-white rounded p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="{% static 'img/avatar.jpg' %}" class="img-fluid rounded-circle" style="width: 60px; height: 60px;" alt="">
+                        <div class="ms-3">
+                            <h5 class="mb-1">Trần Thị B</h5>
+                            <div class="text-warning">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mb-0">"Sản phẩm chất lượng, giá cả hợp lý. Gia đình tôi sẽ ủng hộ lâu dài."</p>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="testimonial-item bg-white rounded p-4">
+                    <div class="d-flex align-items-center mb-3">
+                        <img src="{% static 'img/avatar.jpg' %}" class="img-fluid rounded-circle" style="width: 60px; height: 60px;" alt="">
+                        <div class="ms-3">
+                            <h5 class="mb-1">Lê Văn C</h5>
+                            <div class="text-warning">
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="fas fa-star"></i>
+                                <i class="far fa-star"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="mb-0">"Tôi tin tưởng vào nông sản sạch. Cửa hàng uy tín, đáng tin cậy."</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+let flashSaleInterval;
+
+// Load Flash Sale
+function loadFlashSale() {
+    fetch('/api/promotions/flash-sales/active/')
+        .then(res => res.json())
+        .then(data => {
+            if (data.flash_sales && data.flash_sales.length > 0) {
+                const flashSale = data.flash_sales[0];
+                
+                document.getElementById('flash-sale-section').style.display = 'block';
+                document.getElementById('flash-sale-name').textContent = flashSale.name;
+                document.getElementById('flash-sale-description').textContent = flashSale.description;
+                
+                // Display products
+                const productsHtml = flashSale.products.slice(0, 4).map(item => `
+                    <div class="col-md-6 col-lg-3">
+                        <div class="rounded position-relative fruite-item">
+                            <div class="fruite-img">
+                                <img src="${item.thumbnail || '{% static "img/default-product.jpg" %}'}" class="img-fluid w-100 rounded-top" alt="">
+                            </div>
+                            <div class="text-white bg-danger px-3 py-1 rounded position-absolute" style="top: 10px; left: 10px;">
+                                -${item.discount_percentage}%
+                            </div>
+                            <div class="p-4 border border-danger border-top-0 rounded-bottom">
+                                <h5>${item.name}</h5>
+                                <div class="d-flex justify-content-between flex-lg-wrap mb-3">
+                                    <p class="text-dark mb-0">
+                                        <del class="text-muted">${formatPrice(item.original_price)}</del>
+                                    </p>
+                                    <p class="text-danger fs-5 fw-bold mb-0">${formatPrice(item.sale_price)}</p>
+                                </div>
+                                <a href="/shop/detail/?id=${item.id}" class="btn border border-danger rounded-pill px-3 text-danger w-100">
+                                    <i class="fa fa-shopping-bag me-2"></i> Mua ngay
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('flash-sale-products').innerHTML = productsHtml;
+                
+                // Start countdown
+                startCountdown(flashSale.time_remaining);
+            }
+        })
+        .catch(err => console.error('Error loading flash sale:', err));
+}
+
+function startCountdown(seconds) {
+    if (flashSaleInterval) clearInterval(flashSaleInterval);
+    
+    let timeLeft = seconds;
+    
+    function updateTimer() {
+        const hours = Math.floor(timeLeft / 3600);
+        const minutes = Math.floor((timeLeft % 3600) / 60);
+        const secs = timeLeft % 60;
+        
+        document.getElementById('hours').textContent = String(hours).padStart(2, '0');
+        document.getElementById('minutes').textContent = String(minutes).padStart(2, '0');
+        document.getElementById('seconds').textContent = String(secs).padStart(2, '0');
+        
+        if (timeLeft <= 0) {
+            clearInterval(flashSaleInterval);
+            document.getElementById('flash-sale-section').style.display = 'none';
+        }
+        
+        timeLeft--;
+    }
+    
+    updateTimer();
+    flashSaleInterval = setInterval(updateTimer, 1000);
+}
+
+// Load Vouchers
+function loadVouchers() {
+    fetch('/api/promotions/vouchers/')
+        .then(res => res.json())
+        .then(data => {
+            if (data.vouchers && data.vouchers.length > 0) {
+                const vouchersHtml = data.vouchers.slice(0, 3).map(voucher => `
+                    <div class="col-md-4">
+                        <div class="bg-white border border-primary rounded p-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="bg-primary text-white rounded p-3 me-3">
+                                    <i class="fas fa-ticket-alt fa-2x"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-0">${voucher.code}</h5>
+                                    <small class="text-muted">Giảm ${voucher.discount_value}${voucher.discount_type === 'percentage' ? '%' : '₫'}</small>
+                                </div>
+                            </div>
+                            <p class="mb-2">${voucher.name}</p>
+                            <p class="text-muted small mb-3">${voucher.description}</p>
+                            <button class="btn btn-outline-primary btn-sm" onclick="copyVoucherCode('${voucher.code}')">
+                                <i class="fas fa-copy me-2"></i>Sao chép mã
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                document.getElementById('vouchers-section').innerHTML = vouchersHtml;
+            } else {
+                document.getElementById('vouchers-section').innerHTML = '<div class="col-12 text-center"><p>Hiện chưa có mã giảm giá nào</p></div>';
+            }
+        })
+        .catch(err => {
+            console.error('Error loading vouchers:', err);
+            document.getElementById('vouchers-section').innerHTML = '<div class="col-12 text-center"><p>Không thể tải mã giảm giá</p></div>';
+        });
+}
+
+function copyVoucherCode(code) {
+    navigator.clipboard.writeText(code).then(() => {
+        alert('Đã sao chép mã: ' + code);
+    });
+}
+
 // Load featured products
-document.addEventListener('DOMContentLoaded', function() {
+function loadProducts() {
     fetch('/api/catalog/products/')
         .then(res => res.json())
         .then(data => {
@@ -164,8 +392,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <p>${product.description.substring(0, 50)}...</p>
                                 <div class="d-flex justify-content-between flex-lg-wrap">
                                     <p class="text-dark fs-5 fw-bold mb-0">${formatPrice(product.price_vnd)}</p>
-                                    <a href="#" onclick="addToCart(${product.id}); return false;" class="btn border border-secondary rounded-pill px-3 text-primary">
-                                        <i class="fa fa-shopping-bag me-2 text-primary"></i> Thêm vào giỏ
+                                    <a href="/shop/detail/?id=${product.id}" class="btn border border-secondary rounded-pill px-3 text-primary">
+                                        <i class="fa fa-eye me-2 text-primary"></i> Xem
                                     </a>
                                 </div>
                             </div>
@@ -180,57 +408,10 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error loading products:', err);
             document.getElementById('products-container').innerHTML = '<div class="col-12"><p class="text-center text-danger">Không thể tải sản phẩm</p></div>';
         });
-});
+}
 
 function formatPrice(price) {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(price);
-}
-
-function addToCart(productId) {
-    const token = localStorage.getItem('token');
-    
-    if (!token) {
-        alert('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng');
-        window.location.href = '/login/';
-        return;
-    }
-    
-    fetch('/api/cart/add/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Token ' + token
-        },
-        body: JSON.stringify({
-            product_id: productId,
-            qty: 1
-        })
-    })
-    .then(res => res.json())
-    .then(data => {
-        alert(data.detail || 'Đã thêm vào giỏ hàng');
-        // Update cart count
-        updateCartCount();
-    })
-    .catch(err => {
-        console.error('Error:', err);
-        alert('Có lỗi xảy ra');
-    });
-}
-
-function updateCartCount() {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-    
-    fetch('/api/cart/me/', {
-        headers: {
-            'Authorization': 'Token ' + token
-        }
-    })
-    .then(res => res.json())
-    .then(data => {
-        document.getElementById('cart-count').textContent = data.total_items || 0;
-    });
 }
 
 function searchProducts() {
@@ -239,5 +420,12 @@ function searchProducts() {
         window.location.href = `/shop/?search=${encodeURIComponent(query)}`;
     }
 }
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    loadFlashSale();
+    loadVouchers();
+    loadProducts();
+});
 </script>
 {% endblock %}

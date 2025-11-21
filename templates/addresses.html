@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Địa chỉ giao hàng - CleanAgri{% endblock %}
+
+{% block content %}
+<div class="container-fluid page-header py-5">
+    <h1 class="text-center text-white display-6">Địa chỉ giao hàng</h1>
+</div>
+
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12 mb-4">
+            <button class="btn btn-primary rounded-pill px-4 py-3" data-bs-toggle="modal" data-bs-target="#addressModal" onclick="resetAddressForm()">
+                <i class="fas fa-plus me-2"></i>Thêm địa chỉ mới
+            </button>
+        </div>
+
+        <div class="col-12">
+            <div class="row g-4" id="addresses-container">
+                <div class="col-12 text-center py-5">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Address Modal -->
+<div class="modal fade" id="addressModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Thêm địa chỉ mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="address-form">
+                    <input type="hidden" id="address-id">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Họ tên *</label>
+                            <input type="text" id="full-name" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Số điện thoại *</label>
+                            <input type="tel" id="phone" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tỉnh/Thành phố *</label>
+                            <select id="province" class="form-select" required>
+                                <option value="">Chọn tỉnh/thành</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Quận/Huyện *</label>
+                            <input type="text" id="district" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Phường/Xã *</label>
+                            <input type="text" id="ward" class="form-control" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Địa chỉ cụ thể *</label>
+                            <input type="text" id="address-line" class="form-control" placeholder="Số nhà, tên đường..." required>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="is-default">
+                                <label class="form-check-label" for="is-default">
+                                    Đặt làm địa chỉ mặc định
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                <div id="form-message"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                <button type="button" class="btn btn-primary" onclick="saveAddress()">Lưu địa chỉ</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentAddressId = null;
+
+function loadAddresses() {
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+        window.location.href = '/login/';
+        return;
+    }
+    
+    fetch('/api/accounts/addresses/', {
+        headers: {
+            'Authorization': 'Token ' + token
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        const container = document.getElementById('addresses-container');
+        
+        if (data.addresses && data.addresses.length > 0) {
+            container.innerHTML = data.addresses.map(addr => `
+                <div class="col-md-6">
+                    <div class="bg-light rounded p-4 position-relative">
+                        ${addr.is_default ? '<span class="badge bg-primary position-absolute" style="top: 10px; right: 10px;">Mặc định</span>' : ''}
+                        <h5 class="mb-3">${addr.full_name}</h5>
+                        <p class="mb-2"><i class="fas fa-phone me-2"></i>${addr.phone}</p>
+                        <p class="mb-3"><i class="fas fa-map-marker-alt me-2"></i>${addr.full_address}</p>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-outline-primary" onclick="editAddress(${addr.id})">
+                                <i class="fas fa-edit me-1"></i>Sửa
+                            </button>
+                            ${!addr.is_default ? `
+                                <button class="btn btn-sm btn-outline-success" onclick="setDefaultAddress(${addr.id})">
+                                    <i class="fas fa-check me-1"></i>Đặt mặc định
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteAddress(${addr.id})">
+                                    <i class="fas fa-trash me-1"></i>Xóa
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        } else {
+            container.innerHTML = `
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-map-marker-alt fa-3x text-muted mb-3"></i>
+                    <p>Chưa có địa chỉ giao hàng nào</p>
+                </div>
+            `;
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        document.getElementById('addresses-container').innerHTML = `
+            <div class="col-12 text-center py-5">
+                <p class="text-danger">Không thể tải danh sách địa chỉ</p>
+            </div>
+        `;
+    });
+}
+
+function loadProvinces() {
+    fetch('/api/accounts/provinces/')
+        .then(res => res.json())
+        .then(data => {
+            const select = document.getElementById('province');
+            data.provinces.forEach(province => {
+                const option = document.createElement('option');
+                option.value = province;
+                option.textContent = province;
+                select.appendChild(option);
+            });
+        });
+}
+
+function resetAddressForm() {
+    document.getElementById('address-form').reset();
+    document.getElementById('address-id').value = '';
+    document.getElementById('modalTitle').textContent = 'Thêm địa chỉ mới';
+    document.getElementById('form-message').innerHTML = '';
+    currentAddressId = null;
+}
+
+function editAddress(addressId) {
+    const token = localStorage.getItem('token');
+    
+    fetch(`/api/accounts/addresses/${addressId}/`, {
+        headers: {
+            'Authorization': 'Token ' + token
+        }
+    })
+    .then(res => res.json())
+    .then(addr => {
+        document.getElementById('address-id').value = addr.id;
+        document.getElementById('full-name').value = addr.full_name;
+        document.getElementById('phone').value = addr.phone;
+        document.getElementById('province').value = addr.province;
+        document.getElementById('district').value = addr.district;
+        document.getElementById('ward').value = addr.ward;
+        document.getElementById('address-line').value = addr.address_line;
+        document.getElementById('is-default').checked = addr.is_default;
+        
+        document.getElementById('modalTitle').textContent = 'Sửa địa chỉ';
+        currentAddressId = addressId;
+        
+        new bootstrap.Modal(document.getElementById('addressModal')).show();
+    });
+}
+
+function saveAddress() {
+    const token = localStorage.getItem('token');
+    const addressId = document.getElementById('address-id').value;
+    
+    const data = {
+        full_name: document.getElementById('full-name').value,
+        phone: document.getElementById('phone').value,
+        province: document.getElementById('province').value,
+        district: document.getElementById('district').value,
+        ward: document.getElementById('ward').value,
+        address_line: document.getElementById('address-line').value,
+        is_default: document.getElementById('is-default').checked
+    };
+    
+    const url = addressId ? 
+        `/api/accounts/addresses/${addressId}/` : 
+        '/api/accounts/addresses/';
+    
+    const method = addressId ? 'PUT' : 'POST';
+    
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Token ' + token
+        },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('form-message').innerHTML = 
+            '<div class="alert alert-success mt-3">Lưu địa chỉ thành công!</div>';
+        
+        setTimeout(() => {
+            bootstrap.Modal.getInstance(document.getElementById('addressModal')).hide();
+            loadAddresses();
+        }, 1000);
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        document.getElementById('form-message').innerHTML = 
+            '<div class="alert alert-danger mt-3">Có lỗi xảy ra. Vui lòng thử lại.</div>';
+    });
+}
+
+function setDefaultAddress(addressId) {
+    const token = localStorage.getItem('token');
+    
+    fetch(`/api/accounts/addresses/${addressId}/set-default/`, {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Token ' + token
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.detail);
+        loadAddresses();
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('Không thể đặt địa chỉ mặc định');
+    });
+}
+
+function deleteAddress(addressId) {
+    if (!confirm('Bạn có chắc muốn xóa địa chỉ này?')) return;
+    
+    const token = localStorage.getItem('token');
+    
+    fetch(`/api/accounts/addresses/${addressId}/`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': 'Token ' + token
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.detail);
+        loadAddresses();
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        alert('Không thể xóa địa chỉ');
+    });
+}
+
+// Initialize
+loadAddresses();
+loadProvinces();
+</script>
+{% endblock %}

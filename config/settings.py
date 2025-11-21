@@ -37,7 +37,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'corsheaders.middleware.CorsMiddleware',  # Thêm CORS
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -83,8 +83,20 @@ TIME_ZONE = 'Asia/Ho_Chi_Minh'
 USE_I18N = True
 USE_TZ = True
 
+# ============================================
+# STATIC FILES - QUAN TRỌNG - ĐÃ SỬA
+# ============================================
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'static'
+
+# Thư mục chứa static files trong development (nguồn)
+STATICFILES_DIRS = [
+    BASE_DIR / 'static',
+]
+
+# Thư mục để collect tất cả static files khi deploy (đích)
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# MEDIA FILES
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -125,14 +137,21 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = TIME_ZONE
 
-# Email Configuration (cho notifications)
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Development
+# Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@cleanagri.com')
+
+# CORS Settings (nếu cần cho API)
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Chỉ cho phép tất cả trong development
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
 
 # API Documentation
 SPECTACULAR_SETTINGS = {
