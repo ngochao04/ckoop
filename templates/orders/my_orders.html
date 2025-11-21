@@ -18,22 +18,22 @@
         <div class="col-12 mb-4">
             <ul class="nav nav-pills justify-content-center">
                 <li class="nav-item">
-                    <a class="nav-link active" href="#" onclick="filterOrders('all')">Tất cả</a>
+                    <a class="nav-link active" href="#" onclick="filterOrders('all'); return false;">Tất cả</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="filterOrders('wait')">Chờ xác nhận</a>
+                    <a class="nav-link" href="#" onclick="filterOrders('new'); return false;">Chờ xác nhận</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="filterOrders('paid')">Đã xác nhận</a>
+                    <a class="nav-link" href="#" onclick="filterOrders('paid'); return false;">Đã xác nhận</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="filterOrders('ship')">Đang giao</a>
+                    <a class="nav-link" href="#" onclick="filterOrders('ship'); return false;">Đang giao</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="filterOrders('done')">Hoàn thành</a>
+                    <a class="nav-link" href="#" onclick="filterOrders('done'); return false;">Hoàn thành</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#" onclick="filterOrders('cancel')">Đã hủy</a>
+                    <a class="nav-link" href="#" onclick="filterOrders('cancel'); return false;">Đã hủy</a>
                 </li>
             </ul>
         </div>
@@ -93,14 +93,14 @@ function loadOrders() {
                 <div class="bg-light rounded p-4 mb-4">
                     <div class="row">
                         <div class="col-md-8">
-                            <h5 class="mb-3">Đơn hàng #${order.id}</h5>
+                            <h5 class="mb-3">Đơn hàng #${order.order_id}</h5>
                             <p class="mb-2">
                                 <strong>Ngày đặt:</strong> ${formatDate(order.created_at)}
                             </p>
                             <p class="mb-2">
                                 <strong>Trạng thái:</strong> 
                                 <span class="badge ${getStatusBadgeClass(order.status)}">
-                                    ${getStatusText(order.status)}
+                                    ${order.status_display}
                                 </span>
                             </p>
                             <p class="mb-2">
@@ -112,11 +112,11 @@ function loadOrders() {
                             </p>
                         </div>
                         <div class="col-md-4 text-end d-flex flex-column justify-content-center">
-                            <a href="/orders/${order.id}/" class="btn btn-primary rounded-pill px-4 py-2 mb-2">
+                            <a href="/orders/${order.order_id}/" class="btn btn-primary rounded-pill px-4 py-2 mb-2">
                                 Xem chi tiết
                             </a>
-                            ${order.status === 'wait' ? `
-                                <button onclick="cancelOrder(${order.id})" class="btn btn-outline-danger rounded-pill px-4 py-2">
+                            ${(order.status === 'new' || order.status === 'wait') ? `
+                                <button onclick="cancelOrder(${order.order_id})" class="btn btn-outline-danger rounded-pill px-4 py-2">
                                     Hủy đơn
                                 </button>
                             ` : ''}
@@ -139,6 +139,7 @@ function loadOrders() {
         document.getElementById('orders-container').innerHTML = `
             <div class="text-center py-5">
                 <p class="text-danger">Không thể tải danh sách đơn hàng</p>
+                <button class="btn btn-primary" onclick="loadOrders()">Thử lại</button>
             </div>
         `;
     });
@@ -168,6 +169,7 @@ function cancelOrder(orderId) {
 
 function getStatusText(status) {
     const statuses = {
+        'new': 'Mới tạo',
         'wait': 'Chờ xác nhận',
         'paid': 'Đã xác nhận',
         'ship': 'Đang giao hàng',
@@ -179,6 +181,7 @@ function getStatusText(status) {
 
 function getStatusBadgeClass(status) {
     const classes = {
+        'new': 'bg-secondary',
         'wait': 'bg-warning',
         'paid': 'bg-info',
         'ship': 'bg-primary',

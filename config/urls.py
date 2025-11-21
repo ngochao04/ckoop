@@ -8,26 +8,28 @@ from core.views import (
     home_view, shop_view, cart_view, 
     login_page, register_page, profile_view,
     my_orders_view, order_detail_view, contact_view,
-    product_detail_view, addresses_view,checkout_view
+    product_detail_view, addresses_view, checkout_view
 )
 
 def health(request): 
     return HttpResponse("OK")
 
-
 urlpatterns = [
     # Frontend Pages
     path('', home_view, name='home'),
     path('shop/', shop_view, name='shop'),
-    path('shop/detail/', product_detail_view, name='product_detail'),  # Thêm dòng này
+    path('shop/detail/', product_detail_view, name='product_detail'),
     path('products/<int:product_id>/', product_detail_view, name='product_detail_by_id'),
     path('cart/', cart_view, name='cart'),
     path('checkout/', checkout_view, name='checkout'),
     path('login/', login_page, name='login_page'),
     path('register/', register_page, name='register_page'),
     path('profile/', profile_view, name='profile'),
-    path('orders/', my_orders_view, name='my_orders'),
+    
+    # FIX: Đổi từ 'orders/' thành 'orders/my/'
+    path('orders/my/', my_orders_view, name='my_orders'),
     path('orders/<int:order_id>/', order_detail_view, name='order_detail'),
+    
     path('contact/', contact_view, name='contact'),
     path('addresses/', addresses_view, name='addresses'),
     

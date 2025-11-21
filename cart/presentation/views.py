@@ -66,7 +66,13 @@ class MyCartApi(APIView):
         items = [{
             'id': it.id,
             'product_id': it.product_id,
-            'name': it.product.name,
+            'product': {
+                'id': it.product.id,
+                'name': it.product.name,
+                'thumbnail': request.build_absolute_uri(it.product.thumbnail.url) if it.product.thumbnail else None,
+            },
+            'name': it.product.name,  # Backup
+            'thumbnail': request.build_absolute_uri(it.product.thumbnail.url) if it.product.thumbnail else None,  # Backup
             'price_vnd': it.product.price_vnd,
             'qty': it.qty,
             'line_total': it.product.price_vnd * it.qty

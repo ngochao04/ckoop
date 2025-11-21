@@ -19,8 +19,19 @@ class CheckoutApi(APIView):
     def post(self, request):
         user = request.user
         
+        # Lấy thông tin từ request
+        address_id = request.data.get('address_id')
+        payment_method = request.data.get('payment_method', 'cod')
+        voucher_code = request.data.get('voucher_code', '').strip()
+        
         try:
-            order_id = OrderService().checkout(CheckoutInput(user_id=user.id))
+            order_id = OrderService().checkout(CheckoutInput(
+                user_id=user.id,
+                address_id=address_id,
+                payment_method=payment_method,
+                voucher_code=voucher_code if voucher_code else None
+            ))
+            
             return Response({
                 'detail': 'Đặt hàng thành công',
                 'order_id': order_id

@@ -122,8 +122,8 @@ fetch('/api/catalog/categories/')
 
 // Load products
 function loadProducts() {
-    const urlParams = new URLSearchParams(window.location.search);
-    const search = urlParams.get('search') || document.getElementById('search-input').value.trim();
+    // LẤY SEARCH TỪ INPUT, KHÔNG PHẢI URL
+    const search = document.getElementById('search-input').value.trim();
     const sort = document.getElementById('sort-select').value;
     
     let url = '/api/catalog/products/?';
@@ -135,7 +135,7 @@ function loadProducts() {
         .then(data => {
             let products = data.products;
             
-            // Sort logic...
+            // Sort logic
             if (sort === 'price_asc') {
                 products.sort((a, b) => a.price_vnd - b.price_vnd);
             } else if (sort === 'price_desc') {
@@ -152,6 +152,8 @@ function loadProducts() {
                 '<div class="col-12"><p class="text-center text-danger">Không thể tải sản phẩm</p></div>';
         });
 }
+
+// KHỞI TẠO KHI LOAD TRANG
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const searchParam = urlParams.get('search');
@@ -175,7 +177,8 @@ function displayProducts(products) {
                 <div class="fruite-img">
                     <img src="${product.thumbnail || '{% static "img/default-product.jpg" %}'}" 
                          class="img-fluid w-100 rounded-top" alt="${product.name}"
-                         style="height: 200px; object-fit: cover;">
+                         style="height: 200px; object-fit: cover;"
+                         onerror="this.src='{% static \"img/default-product.jpg\" %}'">
                 </div>
                 <div class="text-white bg-secondary px-3 py-1 rounded position-absolute" style="top: 10px; left: 10px;">
                     ${product.category ? product.category.name : 'Sản phẩm'}
@@ -206,13 +209,7 @@ function filterByCategory(categoryId) {
 }
 
 function searchProducts() {
-    const searchValue = document.getElementById('search-input').value.trim();
-    if (searchValue) {
-        // Cập nhật URL với search query
-        const url = new URL(window.location);
-        url.searchParams.set('search', searchValue);
-        window.history.pushState({}, '', url);
-    }
+    // Chỉ cần gọi loadProducts, nó sẽ lấy value từ input
     loadProducts();
 }
 
@@ -224,8 +221,9 @@ function addToCart(productId) {
     const token = localStorage.getItem('token');
     
     if (!token) {
-        alert('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng');
-        window.location.href = '/login/';
+        if (confirm('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng. Chuyển đến trang đăng nhập?')) {
+            window.location.href = '/login/';
+        }
         return;
     }
     
@@ -242,12 +240,68 @@ function addToCart(productId) {
     })
     .then(res => res.json())
     .then(data => {
-        alert(data.detail || 'Đã thêm vào giỏ hàng');
-        // Update cart count
+        // CẬP NHẬT CART COUNT MÀ KHÔNG THÔNG BÁO
         updateCartCount();
+        
+        // Hiển thị badge nhỏ thay vì alert
+        showMiniNotification('✓ Đã thêm vào giỏ hàng');
     })
-    .catch(err => alert('Có lỗi xảy ra'));
+    .catch(err => console.error('Error:', err));
 }
+
+// HÀM HIỂN THỊ THÔNG BÁO NHỎ
+function showMiniNotification(message) {
+    // Tạo element
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 100px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        z-index: 9999;
+        animation: slideIn 0.3s ease-out;
+    `;
+    notification.textContent = message;
+    
+    // Thêm vào body
+    document.body.appendChild(notification);
+    
+    // Tự động xóa sau 2 giây
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => notification.remove(), 300);
+    }, 2000);
+}
+
+// Thêm CSS animation
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
+        from {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    @keyframes slideOut {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(400px);
+            opacity: 0;
+        }
+    }
+`;
+document.head.appendChild(style);
 
 function updateCartCount() {
     const token = localStorage.getItem('token');
@@ -261,8 +315,5 @@ function updateCartCount() {
         document.getElementById('cart-count').textContent = data.total_items || 0;
     });
 }
-
-// Initial load
-loadProducts();
 </script>
 {% endblock %}

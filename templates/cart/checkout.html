@@ -45,6 +45,16 @@
                         <div class="spinner-border text-primary" role="status"></div>
                     </div>
                 </div>
+                
+                <!-- Thông tin chuyển khoản (ẩn mặc định) -->
+                <div id="bank-transfer-info" class="mt-4" style="display: none;">
+                    <div class="alert alert-info">
+                        <h5 class="mb-3"><i class="fas fa-info-circle me-2"></i>Thông tin chuyển khoản</h5>
+                        <div id="bank-accounts-info">
+                            <!-- Bank info will be loaded here -->
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -59,6 +69,20 @@
                 
                 <hr>
                 
+                <!-- Mã giảm giá -->
+                <div class="mb-3">
+                    <label class="form-label">Mã giảm giá</label>
+                    <div class="input-group">
+                        <input type="text" id="voucher-code" class="form-control" placeholder="Nhập mã giảm giá">
+                        <button class="btn btn-outline-primary" type="button" onclick="applyVoucher()">
+                            Áp dụng
+                        </button>
+                    </div>
+                    <div id="voucher-message" class="mt-2"></div>
+                </div>
+                
+                <hr>
+                
                 <div class="d-flex justify-content-between mb-2">
                     <span>Tạm tính:</span>
                     <span id="subtotal">0 ₫</span>
@@ -67,7 +91,7 @@
                     <span>Phí vận chuyển:</span>
                     <span id="shipping-fee">Miễn phí</span>
                 </div>
-                <div class="d-flex justify-content-between mb-3">
+                <div class="d-flex justify-content-between mb-3" id="discount-row" style="display: none;">
                     <span>Giảm giá:</span>
                     <span id="discount" class="text-success">0 ₫</span>
                 </div>
@@ -137,6 +161,7 @@
 let selectedAddressId = null;
 let selectedPaymentMethod = null;
 let cartData = null;
+let appliedVoucher = null;
 
 // Load cart summary
 function loadCartSummary() {
@@ -167,8 +192,7 @@ function loadCartSummary() {
             `).join('');
             
             document.getElementById('cart-summary').innerHTML = summaryHtml;
-            document.getElementById('subtotal').textContent = formatPrice(data.total_vnd);
-            document.getElementById('total').textContent = formatPrice(data.total_vnd);
+            updatePrices();
         } else {
             window.location.href = '/cart/';
         }
@@ -176,6 +200,67 @@ function loadCartSummary() {
     .catch(err => {
         console.error('Error:', err);
         alert('Không thể tải giỏ hàng');
+    });
+}
+
+function updatePrices() {
+    if (!cartData) return;
+    
+    let subtotal = cartData.total_vnd;
+    let discount = 0;
+    
+    if (appliedVoucher) {
+        discount = appliedVoucher.discount_amount;
+        document.getElementById('discount-row').style.display = 'flex';
+        document.getElementById('discount').textContent = '-' + formatPrice(discount);
+    } else {
+        document.getElementById('discount-row').style.display = 'none';
+    }
+    
+    let total = subtotal - discount;
+    
+    document.getElementById('subtotal').textContent = formatPrice(subtotal);
+    document.getElementById('total').textContent = formatPrice(total);
+}
+
+// Apply voucher
+function applyVoucher() {
+    const code = document.getElementById('voucher-code').value.trim();
+    const messageDiv = document.getElementById('voucher-message');
+    
+    if (!code) {
+        messageDiv.innerHTML = '<small class="text-danger">Vui lòng nhập mã giảm giá</small>';
+        return;
+    }
+    
+    const token = localStorage.getItem('token');
+    
+    fetch('/api/promotions/vouchers/check/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Token ' + token
+        },
+        body: JSON.stringify({
+            code: code,
+            order_value: cartData.total_vnd
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.valid) {
+            appliedVoucher = data;
+            messageDiv.innerHTML = `<small class="text-success"><i class="fas fa-check-circle"></i> ${data.message}</small>`;
+            updatePrices();
+        } else {
+            appliedVoucher = null;
+            messageDiv.innerHTML = `<small class="text-danger"><i class="fas fa-times-circle"></i> ${data.message}</small>`;
+            updatePrices();
+        }
+    })
+    .catch(err => {
+        console.error('Error:', err);
+        messageDiv.innerHTML = '<small class="text-danger">Có lỗi xảy ra</small>';
     });
 }
 
@@ -209,7 +294,6 @@ function loadAddresses() {
                 </div>
             `).join('');
             
-            // Auto select default address
             const defaultAddr = data.addresses.find(a => a.is_default);
             if (defaultAddr) {
                 selectedAddressId = defaultAddr.id;
@@ -244,7 +328,7 @@ function loadPaymentMethods() {
                         <input class="form-check-input" type="radio" name="payment" 
                                id="payment-${method.code}" value="${method.code}"
                                ${index === 0 ? 'checked' : ''}
-                               onchange="selectPaymentMethod('${method.code}')">
+                               onchange="selectPaymentMethod('${method.code}', ${JSON.stringify(method).replace(/"/g, '&quot;')})">
                         <label class="form-check-label w-100" for="payment-${method.code}">
                             <div class="d-flex align-items-center">
                                 <span class="fs-4 me-3">${method.icon}</span>
@@ -257,8 +341,8 @@ function loadPaymentMethods() {
                     </div>
                 `).join('');
                 
-                // Auto select first payment method
                 selectedPaymentMethod = data.payment_methods[0].code;
+                selectPaymentMethod(data.payment_methods[0].code, data.payment_methods[0]);
                 checkCanCheckout();
             }
         })
@@ -275,8 +359,35 @@ function selectAddress(addressId) {
     checkCanCheckout();
 }
 
-function selectPaymentMethod(method) {
+function selectPaymentMethod(method, methodData) {
     selectedPaymentMethod = method;
+    
+    // Hiện/ẩn thông tin chuyển khoản
+    const bankInfoDiv = document.getElementById('bank-transfer-info');
+    const bankAccountsDiv = document.getElementById('bank-accounts-info');
+    
+    if (method === 'bank' && methodData.bank_accounts) {
+        bankInfoDiv.style.display = 'block';
+        
+        bankAccountsDiv.innerHTML = methodData.bank_accounts.map(acc => `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h6 class="card-title">${acc.bank_name}</h6>
+                    <p class="mb-1"><strong>Chủ tài khoản:</strong> ${acc.account_holder}</p>
+                    <p class="mb-1"><strong>Số tài khoản:</strong> <span class="text-primary fw-bold">${acc.account_number}</span></p>
+                    ${acc.qr_code ? `
+                        <div class="text-center mt-3">
+                            <img src="${acc.qr_code}" alt="QR Code" style="max-width: 200px;" class="img-fluid">
+                            <p class="text-muted mt-2"><small>Quét mã QR để chuyển khoản</small></p>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `).join('');
+    } else {
+        bankInfoDiv.style.display = 'none';
+    }
+    
     checkCanCheckout();
 }
 
@@ -336,16 +447,23 @@ function processCheckout() {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang xử lý...';
     
+    const checkoutData = {
+        address_id: selectedAddressId,
+        payment_method: selectedPaymentMethod
+    };
+    
+    // Thêm voucher nếu có
+    if (appliedVoucher) {
+        checkoutData.voucher_code = document.getElementById('voucher-code').value.trim();
+    }
+    
     fetch('/api/orders/checkout/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': 'Token ' + token
         },
-        body: JSON.stringify({
-            address_id: selectedAddressId,
-            payment_method: selectedPaymentMethod
-        })
+        body: JSON.stringify(checkoutData)
     })
     .then(res => {
         if (!res.ok) {
