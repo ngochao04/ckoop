@@ -8,7 +8,7 @@ from core.views import (
     home_view, shop_view, cart_view, 
     login_page, register_page, profile_view,
     my_orders_view, order_detail_view, contact_view,
-    product_detail_view, addresses_view
+    product_detail_view, addresses_view,checkout_view
 )
 
 def health(request): 
@@ -19,8 +19,10 @@ urlpatterns = [
     # Frontend Pages
     path('', home_view, name='home'),
     path('shop/', shop_view, name='shop'),
-    path('products/<int:product_id>/', product_detail_view, name='product_detail'),
+    path('shop/detail/', product_detail_view, name='product_detail'),  # Thêm dòng này
+    path('products/<int:product_id>/', product_detail_view, name='product_detail_by_id'),
     path('cart/', cart_view, name='cart'),
+    path('checkout/', checkout_view, name='checkout'),
     path('login/', login_page, name='login_page'),
     path('register/', register_page, name='register_page'),
     path('profile/', profile_view, name='profile'),

@@ -122,7 +122,8 @@ fetch('/api/catalog/categories/')
 
 // Load products
 function loadProducts() {
-    const search = document.getElementById('search-input').value.trim();
+    const urlParams = new URLSearchParams(window.location.search);
+    const search = urlParams.get('search') || document.getElementById('search-input').value.trim();
     const sort = document.getElementById('sort-select').value;
     
     let url = '/api/catalog/products/?';
@@ -134,7 +135,7 @@ function loadProducts() {
         .then(data => {
             let products = data.products;
             
-            // Sort
+            // Sort logic...
             if (sort === 'price_asc') {
                 products.sort((a, b) => a.price_vnd - b.price_vnd);
             } else if (sort === 'price_desc') {
@@ -144,8 +145,21 @@ function loadProducts() {
             }
             
             displayProducts(products);
+        })
+        .catch(err => {
+            console.error('Error:', err);
+            document.getElementById('products-grid').innerHTML = 
+                '<div class="col-12"><p class="text-center text-danger">Không thể tải sản phẩm</p></div>';
         });
 }
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchParam = urlParams.get('search');
+    if (searchParam) {
+        document.getElementById('search-input').value = searchParam;
+    }
+    loadProducts();
+});
 
 function displayProducts(products) {
     const grid = document.getElementById('products-grid');
@@ -192,6 +206,13 @@ function filterByCategory(categoryId) {
 }
 
 function searchProducts() {
+    const searchValue = document.getElementById('search-input').value.trim();
+    if (searchValue) {
+        // Cập nhật URL với search query
+        const url = new URL(window.location);
+        url.searchParams.set('search', searchValue);
+        window.history.pushState({}, '', url);
+    }
     loadProducts();
 }
 

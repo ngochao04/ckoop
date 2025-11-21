@@ -6,8 +6,11 @@ def home_view(request):
 def shop_view(request):
     return render(request, 'catalog/shop.html')
 
-def product_detail_view(request):
-    return render(request, 'catalog/shop-detail.html')
+def product_detail_view(request, product_id=None):
+    # Lấy product_id từ URL parameter hoặc query string
+    if product_id is None:
+        product_id = request.GET.get('id')
+    return render(request, 'catalog/shop-detail.html', {'product_id': product_id})
 
 def cart_view(request):
     return render(request, 'cart/cart.html')
@@ -15,7 +18,7 @@ def cart_view(request):
 def login_page(request):
     return render(request, 'accounts/login_register.html', {'is_login': True})
 
-def register_page(request):
+def register_page(request): 
     return render(request, 'accounts/login_register.html', {'is_login': False})
 
 def profile_view(request):
@@ -32,3 +35,6 @@ def addresses_view(request):
 
 def contact_view(request):
     return render(request, 'contact.html')
+
+def checkout_view(request):
+    return render(request, 'cart/checkout.html')

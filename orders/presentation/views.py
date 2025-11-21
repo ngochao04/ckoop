@@ -53,47 +53,52 @@ class MyOrdersApi(APIView):
 
 
 class OrderDetailApi(APIView):
-    """Chi tiết đơn hàng"""
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
     
     def get(self, request, order_id):
-        user = request.user
+        order = get_object_or_404(OrderModel, id=order_id)
         
-        # Nếu là admin, cho phép xem tất cả đơn hàng
-        if user.is_staff:
-            order = OrderModel.objects.filter(id=order_id).prefetch_related('lines').first()
-        else:
-            order = OrderModel.objects.filter(
-                id=order_id, 
-                buyer=user
-            ).prefetch_related('lines').first()
-        
-        if not order:
+        if order.buyer != request.user and not request.user.is_staff:
             return Response({
-                'detail': 'Đơn hàng không tồn tại'
-            }, status=status.HTTP_404_NOT_FOUND)
+                'detail': 'Bạn không có quyền xem đơn hàng này'
+            }, status=status.HTTP_403_FORBIDDEN)
         
-        lines = [{
-            'product_name': line.product_name,
-            'sku': line.sku,
-            'price_vnd': line.price_vnd,
-            'qty': line.qty,
-            'line_total': line.price_vnd * line.qty
-        } for line in order.lines.all()]
+        # THÊM: Serialize delivery_address
+        delivery_address_data = None
+        if order.delivery_address:
+            delivery_address_data = {
+                'id': order.delivery_address.id,
+                'full_name': order.delivery_address.full_name,
+                'phone': order.delivery_address.phone,
+                'full_address': order.delivery_address.full_address,
+                'province': order.delivery_address.province,
+                'district': order.delivery_address.district,
+                'ward': order.delivery_address.ward,
+                'address_line': order.delivery_address.address_line
+            }
+        
+        items_data = [{
+            'id': item.id,
+            'product': {
+                'id': item.product.id,
+                'name': item.product.name,
+                'thumbnail': item.product.thumbnail.url if item.product.thumbnail else None
+            },
+            'qty': item.qty,
+            'price_vnd': item.price_vnd,
+            'line_total': item.line_total
+        } for item in order.items.all()]
         
         return Response({
-            'order_id': order.id,
-            'buyer': {
-                'id': order.buyer.id,
-                'username': order.buyer.username,
-                'email': order.buyer.email
-            },
-            'total_vnd': order.total_vnd,
+            'id': order.id,
             'status': order.status,
             'status_display': order.get_status_display(),
-            'created_at': order.created_at,
-            'lines': lines
+            'delivery_address': delivery_address_data,  # THÊM
+            'items': items_data,
+            'total_vnd': order.total_vnd,
+            'created_at': order.created_at.isoformat(),
+            'updated_at': order.updated_at.isoformat()
         })
 
 
