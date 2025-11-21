@@ -8,7 +8,7 @@ from core.views import (
     home_view, shop_view, cart_view, 
     login_page, register_page, profile_view,
     my_orders_view, order_detail_view, contact_view,
-    product_detail_view
+    product_detail_view, addresses_view
 )
 
 def health(request): 
@@ -27,6 +27,7 @@ urlpatterns = [
     path('orders/', my_orders_view, name='my_orders'),
     path('orders/<int:order_id>/', order_detail_view, name='order_detail'),
     path('contact/', contact_view, name='contact'),
+    path('addresses/', addresses_view, name='addresses'),
     
     # Admin & Health
     path('admin/', admin.site.urls),

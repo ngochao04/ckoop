@@ -87,44 +87,59 @@ function loadCart() {
         const tbody = document.getElementById('cart-items');
         
         if (data.items && data.items.length > 0) {
-            tbody.innerHTML = data.items.map(item => `
-                <tr>
-                    <th scope="row">
-                        <div class="d-flex align-items-center">
-                            <img src="${item.thumbnail || '{% static "img/default-product.jpg" %}'}" class="img-fluid me-5 rounded-circle" style="width: 80px; height: 80px;" alt="">
-                        </div>
-                    </th>
-                    <td>
-                        <p class="mb-0 mt-4">${item.name}</p>
-                    </td>
-                    <td>
-                        <p class="mb-0 mt-4">${formatPrice(item.price_vnd)}</p>
-                    </td>
-                    <td>
-                        <div class="input-group quantity mt-4" style="width: 100px;">
-                            <div class="input-group-btn">
-                                <button class="btn btn-sm btn-minus rounded-circle bg-light border" onclick="updateQty(${item.id}, ${item.qty - 1})">
-                                    <i class="fa fa-minus"></i>
-                                </button>
+            tbody.innerHTML = data.items.map(item => {
+                // Lấy thumbnail từ product object
+                const thumbnail = item.product && item.product.thumbnail 
+                    ? item.product.thumbnail 
+                    : item.thumbnail || '{% static "img/default-product.jpg" %}';
+                
+                const productName = item.product && item.product.name 
+                    ? item.product.name 
+                    : item.name || 'Sản phẩm';
+                
+                return `
+                    <tr>
+                        <th scope="row">
+                            <div class="d-flex align-items-center">
+                                <img src="${thumbnail}" 
+                                     class="img-fluid me-5 rounded-circle" 
+                                     style="width: 80px; height: 80px; object-fit: cover;" 
+                                     alt="${productName}"
+                                     onerror="this.src='{% static "img/default-product.jpg" %}'">
                             </div>
-                            <input type="text" class="form-control form-control-sm text-center border-0" value="${item.qty}" readonly>
-                            <div class="input-group-btn">
-                                <button class="btn btn-sm btn-plus rounded-circle bg-light border" onclick="updateQty(${item.id}, ${item.qty + 1})">
-                                    <i class="fa fa-plus"></i>
-                                </button>
+                        </th>
+                        <td>
+                            <p class="mb-0 mt-4">${productName}</p>
+                        </td>
+                        <td>
+                            <p class="mb-0 mt-4">${formatPrice(item.price_vnd)}</p>
+                        </td>
+                        <td>
+                            <div class="input-group quantity mt-4" style="width: 100px;">
+                                <div class="input-group-btn">
+                                    <button class="btn btn-sm btn-minus rounded-circle bg-light border" onclick="updateQty(${item.id}, ${item.qty - 1})">
+                                        <i class="fa fa-minus"></i>
+                                    </button>
+                                </div>
+                                <input type="text" class="form-control form-control-sm text-center border-0" value="${item.qty}" readonly>
+                                <div class="input-group-btn">
+                                    <button class="btn btn-sm btn-plus rounded-circle bg-light border" onclick="updateQty(${item.id}, ${item.qty + 1})">
+                                        <i class="fa fa-plus"></i>
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                    </td>
-                    <td>
-                        <p class="mb-0 mt-4">${formatPrice(item.line_total)}</p>
-                    </td>
-                    <td>
-                        <button class="btn btn-md rounded-circle bg-light border mt-4" onclick="removeItem(${item.id})">
-                            <i class="fa fa-times text-danger"></i>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+                        </td>
+                        <td>
+                            <p class="mb-0 mt-4">${formatPrice(item.line_total)}</p>
+                        </td>
+                        <td>
+                            <button class="btn btn-md rounded-circle bg-light border mt-4" onclick="removeItem(${item.id})">
+                                <i class="fa fa-times text-danger"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
             
             document.getElementById('subtotal').textContent = formatPrice(data.total_vnd);
             document.getElementById('total').textContent = formatPrice(data.total_vnd);
@@ -193,10 +208,16 @@ function checkout() {
     fetch('/api/orders/checkout/', {
         method: 'POST',
         headers: {
+            'Content-Type': 'application/json',
             'Authorization': 'Token ' + token
         }
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) {
+            return res.json().then(err => { throw err; });
+        }
+        return res.json();
+    })
     .then(data => {
         if (data.order_id) {
             alert('Đặt hàng thành công!');
@@ -207,7 +228,8 @@ function checkout() {
     })
     .catch(err => {
         console.error('Error:', err);
-        alert('Có lỗi xảy ra');
+        const message = err.detail || err.message || 'Có lỗi xảy ra khi đặt hàng';
+        alert(message);
     });
 }
 
