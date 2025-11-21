@@ -4,7 +4,7 @@ from django.conf import settings
 class OrderModel(models.Model):
     class Status(models.TextChoices):
         NEW = 'new','Mới'
-        WAIT = 'wait', 'Chờ Thanh toán'  # Thêm status này
+        WAIT = 'wait', 'Chờ Thanh toán'
         PAID = 'paid','Trả'
         SHIP = 'ship','Giao Hàng'
         DONE = 'done','Hoàn Thành'
@@ -14,9 +14,9 @@ class OrderModel(models.Model):
     total_vnd = models.PositiveIntegerField()
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.NEW)
     
-    # Địa chỉ giao hàng
+    # ✅ SỬA: Địa chỉ giao hàng
     delivery_address = models.ForeignKey(
-        'accounts.Address',
+        'accounts.ShippingAddress',  # ✅ ĐỔI từ Address thành ShippingAddress
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

@@ -3,7 +3,7 @@ from typing import Optional
 from cart.infrastructure.models import CartModel
 from orders.infrastructure.models import OrderModel, OrderLineModel
 from catalog.infrastructure.models import ProductModel, InventoryLog
-from accounts.infrastructure.models import Address
+from accounts.infrastructure.models import ShippingAddress  # ✅ SỬA: Đổi từ Address thành ShippingAddress
 from promotions.models import Voucher, VoucherUsage
 
 @dataclass
@@ -42,14 +42,14 @@ class OrderService:
                     discount_amount = voucher.calculate_discount(total)
                     total = total - discount_amount
             except Voucher.DoesNotExist:
-                pass  # Bỏ qua nếu voucher không tồn tại
+                pass
         
-        # Lấy địa chỉ giao hàng
+        # ✅ SỬA: Lấy địa chỉ giao hàng
         delivery_address = None
         if data.address_id:
             try:
-                delivery_address = Address.objects.get(id=data.address_id, user_id=data.user_id)
-            except Address.DoesNotExist:
+                delivery_address = ShippingAddress.objects.get(id=data.address_id, user_id=data.user_id)
+            except ShippingAddress.DoesNotExist:
                 raise ValueError('Địa chỉ giao hàng không hợp lệ')
         
         # Tạo đơn hàng
@@ -97,8 +97,6 @@ class OrderService:
                 order=order,
                 discount_amount=discount_amount
             )
-            
-            # Tăng used_quantity
             voucher.used_quantity += 1
             voucher.save()
         

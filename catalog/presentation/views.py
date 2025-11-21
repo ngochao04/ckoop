@@ -35,6 +35,11 @@ class ProductListCreateApi(APIView):
         
         products = []
         for m in queryset.order_by('-id'):
+            # ✅ SỬA: Thêm request.build_absolute_uri để có URL đầy đủ
+            thumbnail_url = None
+            if m.thumbnail:
+                thumbnail_url = request.build_absolute_uri(m.thumbnail.url)
+            
             products.append({
                 'id': m.id,
                 'name': m.name,
@@ -47,7 +52,7 @@ class ProductListCreateApi(APIView):
                     'name': m.category.name
                 } if m.category else None,
                 'is_active': m.is_active,
-                'thumbnail': m.thumbnail.url if m.thumbnail else None,
+                'thumbnail': thumbnail_url,  # ✅ SỬA
                 'created_at': m.created_at
             })
         
@@ -73,6 +78,11 @@ class ProductDetailApi(APIView):
         """Xem chi tiết sản phẩm"""
         product = get_object_or_404(ProductModel, id=product_id)
         
+        # ✅ SỬA: Thêm request.build_absolute_uri
+        thumbnail_url = None
+        if product.thumbnail:
+            thumbnail_url = request.build_absolute_uri(product.thumbnail.url)
+        
         return Response({
             'id': product.id,
             'name': product.name,
@@ -85,7 +95,7 @@ class ProductDetailApi(APIView):
                 'name': product.category.name
             } if product.category else None,
             'is_active': product.is_active,
-            'thumbnail': product.thumbnail.url if product.thumbnail else None,
+            'thumbnail': thumbnail_url,  # ✅ SỬA
             'created_at': product.created_at,
             'updated_at': product.updated_at
         })
@@ -286,14 +296,21 @@ class FeaturedProductsApi(APIView):
         """Lấy 8 sản phẩm mới nhất"""
         products = ProductModel.objects.filter(is_active=True).order_by('-created_at')[:8]
         
-        data = [{
-            'id': p.id,
-            'name': p.name,
-            'slug': p.slug,
-            'price_vnd': p.price_vnd,
-            'thumbnail': p.thumbnail.url if p.thumbnail else None,
-            'category': p.category.name if p.category else None
-        } for p in products]
+        data = []
+        for p in products:
+            # ✅ SỬA: Thêm request.build_absolute_uri
+            thumbnail_url = None
+            if p.thumbnail:
+                thumbnail_url = request.build_absolute_uri(p.thumbnail.url)
+            
+            data.append({
+                'id': p.id,
+                'name': p.name,
+                'slug': p.slug,
+                'price_vnd': p.price_vnd,
+                'thumbnail': thumbnail_url,  # ✅ SỬA
+                'category': p.category.name if p.category else None
+            })
         
         return Response({'products': data})
 
