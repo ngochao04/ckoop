@@ -63,6 +63,8 @@ class MyOrdersApi(APIView):
         return Response({'orders': data})
 
 
+# ✅ FIX: Chi tiết trong hàm OrderDetailApi - dòng 75-110
+
 class OrderDetailApi(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
@@ -75,18 +77,27 @@ class OrderDetailApi(APIView):
                 'detail': 'Bạn không có quyền xem đơn hàng này'
             }, status=status.HTTP_403_FORBIDDEN)
         
-        # THÊM: Serialize delivery_address
+        # ✅ FIX: Xử lý delivery_address - tạo full_address từ các field
         delivery_address_data = None
         if order.delivery_address:
+            # ✅ TẠOU FULL_ADDRESS BỰC TỪ CÁC FIELD
+            full_address_parts = [
+                order.delivery_address.address_line,
+                f"Phường/Xã {order.delivery_address.ward}",
+                f"Quận/Huyện {order.delivery_address.district}",
+                f"Tỉnh/TP {order.delivery_address.province}"
+            ]
+            full_address = ", ".join(part for part in full_address_parts if part)
+            
             delivery_address_data = {
                 'id': order.delivery_address.id,
                 'full_name': order.delivery_address.full_name,
                 'phone': order.delivery_address.phone,
-                'full_address': order.delivery_address.full_address,
-                'province': order.delivery_address.province,
-                'district': order.delivery_address.district,
+                'address_line': order.delivery_address.address_line,
                 'ward': order.delivery_address.ward,
-                'address_line': order.delivery_address.address_line
+                'district': order.delivery_address.district,
+                'province': order.delivery_address.province,
+                'full_address': full_address  # ✅ THÊM CẠI NÀY
             }
         
         items_data = [{
@@ -95,7 +106,9 @@ class OrderDetailApi(APIView):
                 'id': item.product.id,
                 'name': item.product.name,
                 'thumbnail': item.product.thumbnail.url if item.product.thumbnail else None
-            },
+            } if item.product else None,
+            'product_name': item.product_name,
+            'sku': item.sku,
             'qty': item.qty,
             'price_vnd': item.price_vnd,
             'line_total': item.line_total
@@ -105,7 +118,7 @@ class OrderDetailApi(APIView):
             'id': order.id,
             'status': order.status,
             'status_display': order.get_status_display(),
-            'delivery_address': delivery_address_data,  # THÊM
+            'delivery_address': delivery_address_data,  # ✅ CHẮC CHẮN FULL_ADDRESS CÓ ĐỦ
             'items': items_data,
             'total_vnd': order.total_vnd,
             'created_at': order.created_at.isoformat(),

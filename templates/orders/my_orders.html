@@ -66,59 +66,87 @@ function filterOrders(status) {
     loadOrders();
 }
 
+function checkToken() {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        console.warn('Token không tồn tại - Redirect to login');
+        window.location.href = '/login/';
+        return false;
+    }
+    return true;
+}
+
 function loadOrders() {
+    // ✅ KIỂM TRA TOKEN TRƯỚC
+    if (!checkToken()) return;
+    
     const token = localStorage.getItem('token');
     
-    if (!token) {
-        window.location.href = '/login/';
-        return;
-    }
-    
-    // ✅ SỬA: /api/orders/my/ là đúng
+    // ✅ BUILD URL ĐÚNG
     let url = '/api/orders/my/';
     if (currentFilter !== 'all') {
         url += `?status=${currentFilter}`;
     }
     
+    console.log('🔄 Fetching orders from:', url);
+    
     fetch(url, {
+        method: 'GET',
         headers: {
-            'Authorization': 'Token ' + token
+            'Authorization': 'Token ' + token,
+            'Content-Type': 'application/json'
         }
     })
-    .then(res => res.json())
+    .then(res => {
+        console.log('📊 Response status:', res.status);
+        
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        return res.json();
+    })
     .then(data => {
+        console.log('✅ Data received:', data);
+        
         const container = document.getElementById('orders-container');
         
+        // ✅ KIỂM TRA DATA CÓ ĐÚNG CẤU TRÚC
+        if (!data || !data.orders) {
+            console.warn('⚠️ Invalid data structure:', data);
+            throw new Error('Dữ liệu không hợp lệ');
+        }
+        
+        // ✅ HIỂN THỊ DANH SÁCH ĐƠN HÀNG
         if (data.orders && data.orders.length > 0) {
             container.innerHTML = data.orders.map(order => `
-                <div class="bg-light rounded p-4 mb-4">
+                <div class="bg-light rounded p-4 mb-4 shadow-sm">
                     <div class="row">
                         <div class="col-md-8">
-                            <h5 class="mb-3">Đơn hàng #${order.order_id}</h5>
+                            <h5 class="mb-3">📦 Đơn hàng #${order.order_id}</h5>
                             <p class="mb-2">
-                                <strong>Ngày đặt:</strong> ${formatDate(order.created_at)}
+                                <strong>📅 Ngày đặt:</strong> ${formatDate(order.created_at)}
                             </p>
                             <p class="mb-2">
-                                <strong>Trạng thái:</strong> 
+                                <strong>📊 Trạng thái:</strong> 
                                 <span class="badge ${getStatusBadgeClass(order.status)}">
                                     ${order.status_display}
                                 </span>
                             </p>
                             <p class="mb-2">
-                                <strong>Tổng tiền:</strong> 
+                                <strong>💰 Tổng tiền:</strong> 
                                 <span class="text-primary fw-bold">${formatPrice(order.total_vnd)}</span>
                             </p>
                             <p class="mb-0">
-                                <strong>Sản phẩm:</strong> ${order.items_count} sản phẩm
+                                <strong>🛍️ Sản phẩm:</strong> ${order.items_count} sản phẩm
                             </p>
                         </div>
-                        <div class="col-md-4 text-end d-flex flex-column justify-content-center">
-                            <a href="/orders/${order.order_id}/" class="btn btn-primary rounded-pill px-4 py-2 mb-2">
-                                Xem chi tiết
+                        <div class="col-md-4 text-end d-flex flex-column justify-content-center gap-2">
+                            <a href="/orders/${order.order_id}/" class="btn btn-primary rounded-pill px-4 py-2">
+                                👁️ Xem chi tiết
                             </a>
                             ${(order.status === 'new' || order.status === 'wait') ? `
                                 <button onclick="cancelOrder(${order.order_id})" class="btn btn-outline-danger rounded-pill px-4 py-2">
-                                    Hủy đơn
+                                    ❌ Hủy đơn
                                 </button>
                             ` : ''}
                         </div>
@@ -126,64 +154,69 @@ function loadOrders() {
                 </div>
             `).join('');
         } else {
+            // ✅ TRƯỜNG HỢP KHÔNG CÓ ĐƠN HÀNG
             container.innerHTML = `
                 <div class="text-center py-5">
-                    <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-                    <p>Chưa có đơn hàng nào</p>
-                    <a href="/shop/" class="btn btn-primary rounded-pill px-4 py-2">Mua sắm ngay</a>
+                    <i class="fas fa-box-open fa-5x text-muted mb-3"></i>
+                    <p class="fs-5">📭 Chưa có đơn hàng nào</p>
+                    <a href="/shop/" class="btn btn-primary rounded-pill px-4 py-2 mt-3">🛒 Mua sắm ngay</a>
                 </div>
             `;
         }
     })
     .catch(err => {
-        console.error('Error:', err);
-        document.getElementById('orders-container').innerHTML = `
-            <div class="text-center py-5">
-                <p class="text-danger">Không thể tải danh sách đơn hàng</p>
-                <button class="btn btn-primary" onclick="loadOrders()">Thử lại</button>
+        console.error('❌ Error loading orders:', err);
+        const container = document.getElementById('orders-container');
+        container.innerHTML = `
+            <div class="alert alert-danger shadow-sm">
+                <h5>⚠️ Lỗi tải danh sách đơn hàng</h5>
+                <p><strong>Chi tiết:</strong> ${err.message}</p>
+                <p class="text-muted mb-0">Vui lòng kiểm tra console (F12) hoặc thử lại</p>
+            </div>
+            <div class="text-center mt-3">
+                <button class="btn btn-primary" onclick="loadOrders()">🔄 Thử lại</button>
             </div>
         `;
     });
 }
 
 function cancelOrder(orderId) {
-    if (!confirm('Bạn có chắc muốn hủy đơn hàng này?')) return;
+    if (!confirm('Bạn có chắc muốn hủy đơn hàng #' + orderId + ' này?')) return;
+    
+    if (!checkToken()) return;
     
     const token = localStorage.getItem('token');
+    
+    console.log('🚫 Canceling order:', orderId);
     
     fetch(`/api/orders/${orderId}/cancel/`, {
         method: 'POST',
         headers: {
-            'Authorization': 'Token ' + token
+            'Authorization': 'Token ' + token,
+            'Content-Type': 'application/json'
         }
     })
-    .then(res => res.json())
+    .then(res => {
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+        return res.json();
+    })
     .then(data => {
-        alert(data.detail || 'Đã hủy đơn hàng');
-        loadOrders();
+        alert(data.detail || '✅ Đã hủy đơn hàng');
+        console.log('✅ Order cancelled successfully');
+        loadOrders();  // ✅ RELOAD DANH SÁCH SAU KHI HỦY
     })
     .catch(err => {
-        console.error('Error:', err);
-        alert('Không thể hủy đơn hàng');
+        console.error('❌ Cancel error:', err);
+        alert('❌ Không thể hủy đơn hàng: ' + err.message);
     });
-}
-
-function getStatusText(status) {
-    const statuses = {
-        'new': 'Mới tạo',
-        'wait': 'Chờ xác nhận',
-        'paid': 'Đã xác nhận',
-        'ship': 'Đang giao hàng',
-        'done': 'Hoàn thành',
-        'cancel': 'Đã hủy'
-    };
-    return statuses[status] || status;
 }
 
 function getStatusBadgeClass(status) {
     const classes = {
         'new': 'bg-secondary',
-        'wait': 'bg-warning',
+        'wait': 'bg-warning text-dark',
         'paid': 'bg-info',
         'ship': 'bg-primary',
         'done': 'bg-success',
@@ -207,7 +240,16 @@ function formatDate(dateStr) {
     });
 }
 
-// Load orders on page load
-loadOrders();
+// ✅ KHỞI TẠO LOAD ORDERS
+console.log('📄 Page loaded, initializing orders...');
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ DOMContentLoaded fired');
+    loadOrders();
+});
+
+// ✅ LỰA CHỌN: GỌI NGAY NẾU SCRIPT CHẠY SAU KHI DOM READY
+if (document.readyState !== 'loading') {
+    console.log('📄 Document already loaded, calling loadOrders immediately');
+}
 </script>
 {% endblock %}
