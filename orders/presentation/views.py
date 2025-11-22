@@ -1,3 +1,6 @@
+# ✅ FULL FILE: orders/presentation/views.py
+# Copy toàn bộ file này và replace file cũ của bạn
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
@@ -42,6 +45,7 @@ class CheckoutApi(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
 
 
+# ✅ FIX CHÍNH: MyOrdersApi - sử dụng 'items' thay vì 'lines'
 class MyOrdersApi(APIView):
     """Danh sách đơn hàng của tôi"""
     authentication_classes = [TokenAuthentication]
@@ -51,20 +55,20 @@ class MyOrdersApi(APIView):
         user = request.user
         orders = OrderModel.objects.filter(buyer=user).order_by('-created_at')
         
+        # ✅ SỬA: Dùng 'items' thay vì 'lines' (theo related_name trong model)
         data = [{
             'order_id': o.id,
             'total_vnd': o.total_vnd,
             'status': o.status,
             'status_display': o.get_status_display(),
             'created_at': o.created_at,
-            'items_count': o.lines.count()
+            'items_count': o.items.count()  # ✅ THAY 'lines' → 'items'
         } for o in orders]
         
         return Response({'orders': data})
 
 
-# ✅ FIX: Chi tiết trong hàm OrderDetailApi - dòng 75-110
-
+# ✅ FIX: OrderDetailApi - tạo full_address từ các field
 class OrderDetailApi(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
@@ -80,7 +84,7 @@ class OrderDetailApi(APIView):
         # ✅ FIX: Xử lý delivery_address - tạo full_address từ các field
         delivery_address_data = None
         if order.delivery_address:
-            # ✅ TẠOU FULL_ADDRESS BỰC TỪ CÁC FIELD
+            # Tạo full_address bằng cách kết hợp các field
             full_address_parts = [
                 order.delivery_address.address_line,
                 f"Phường/Xã {order.delivery_address.ward}",
@@ -97,9 +101,10 @@ class OrderDetailApi(APIView):
                 'ward': order.delivery_address.ward,
                 'district': order.delivery_address.district,
                 'province': order.delivery_address.province,
-                'full_address': full_address  # ✅ THÊM CẠI NÀY
+                'full_address': full_address  # ✅ THÊM full_address
             }
         
+        # ✅ SỬA: Lấy items đúng (sử dụng 'items' từ related_name)
         items_data = [{
             'id': item.id,
             'product': {
@@ -112,13 +117,13 @@ class OrderDetailApi(APIView):
             'qty': item.qty,
             'price_vnd': item.price_vnd,
             'line_total': item.line_total
-        } for item in order.items.all()]
+        } for item in order.items.all()]  # ✅ 'items' là đúng
         
         return Response({
             'id': order.id,
             'status': order.status,
             'status_display': order.get_status_display(),
-            'delivery_address': delivery_address_data,  # ✅ CHẮC CHẮN FULL_ADDRESS CÓ ĐỦ
+            'delivery_address': delivery_address_data,
             'items': items_data,
             'total_vnd': order.total_vnd,
             'created_at': order.created_at.isoformat(),
@@ -199,7 +204,7 @@ class AdminAllOrdersApi(APIView):
             'status': o.status,
             'status_display': o.get_status_display(),
             'created_at': o.created_at,
-            'items_count': o.lines.count()
+            'items_count': o.items.count()  # ✅ THAY 'lines' → 'items'
         } for o in orders_page]
         
         return Response({

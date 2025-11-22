@@ -166,7 +166,9 @@
                     <div class="col-lg-12">
                         <h4 class="mb-4">Sản phẩm nổi bật</h4>
                         <div id="featured-products">
-                            <!-- Featured products will be loaded here -->
+                            <div class="text-center">
+                                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -182,6 +184,9 @@
 </div>
 <!-- Single Product End -->
 
+<!-- Toast Notification -->
+<div id="toast-container" style="position: fixed; top: 100px; right: 20px; z-index: 9999;"></div>
+
 <style>
 .rating-star {
     cursor: pointer;
@@ -190,6 +195,132 @@
 }
 .rating-star.active {
     color: #ffc107;
+}
+
+/* Toast Notification */
+.toast-notification {
+    min-width: 300px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    animation: slideIn 0.3s ease-out;
+}
+
+.toast-notification.success {
+    border-left: 4px solid #28a745;
+}
+
+.toast-notification.error {
+    border-left: 4px solid #dc3545;
+}
+
+.toast-icon {
+    font-size: 24px;
+    margin-right: 12px;
+}
+
+.toast-icon.success {
+    color: #28a745;
+}
+
+.toast-icon.error {
+    color: #dc3545;
+}
+
+.toast-content {
+    flex: 1;
+}
+
+.toast-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.toast-message {
+    font-size: 13px;
+    color: #6c757d;
+    margin: 0;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 10px;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+
+/* Featured products sidebar */
+.featured-product-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    transition: all 0.3s;
+}
+
+.featured-product-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.featured-product-img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-right: 12px;
+}
+
+.featured-product-info {
+    flex: 1;
+}
+
+.featured-product-name {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.featured-product-price {
+    color: #81c408;
+    font-weight: 700;
+    font-size: 14px;
 }
 </style>
 
@@ -200,6 +331,34 @@ let selectedRating = 5;
 // Get product ID from URL
 const urlParams = new URLSearchParams(window.location.search);
 const productId = urlParams.get('id') || window.location.pathname.split('/').filter(x => x).pop();
+
+// ✅ TOAST NOTIFICATION FUNCTION
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    
+    const toast = document.createElement('div');
+    toast.className = `toast-notification ${type}`;
+    
+    const icon = type === 'success' ? '✓' : '✕';
+    const title = type === 'success' ? 'Thành công!' : 'Lỗi!';
+    
+    toast.innerHTML = `
+        <div class="toast-icon ${type}">${icon}</div>
+        <div class="toast-content">
+            <div class="toast-title">${title}</div>
+            <p class="toast-message">${message}</p>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    container.appendChild(toast);
+    
+    // Auto remove after 3 seconds
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
 
 // Load product details
 function loadProductDetail() {
@@ -222,11 +381,6 @@ function loadProductDetail() {
             document.getElementById('detail-unit').textContent = product.unit;
             document.getElementById('detail-category').textContent = product.category ? product.category.name : '-';
             
-            // Update rating (if available)
-            if (product.average_rating) {
-                updateRatingDisplay(product.average_rating);
-            }
-            
             // Show review form if logged in
             const token = localStorage.getItem('token');
             if (token) {
@@ -243,7 +397,37 @@ function loadProductDetail() {
         })
         .catch(err => {
             console.error('Error:', err);
-            alert('Không thể tải thông tin sản phẩm');
+            showToast('Không thể tải thông tin sản phẩm', 'error');
+        });
+}
+
+// ✅ LOAD FEATURED PRODUCTS IN SIDEBAR
+function loadFeaturedProducts() {
+    fetch('/api/catalog/featured/')
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById('featured-products');
+            
+            if (data.products && data.products.length > 0) {
+                container.innerHTML = data.products.slice(0, 4).map(product => `
+                    <a href="/shop/detail/?id=${product.id}" class="featured-product-item text-decoration-none">
+                        <img src="${product.thumbnail || '{% static "img/default-product.jpg" %}'}" 
+                             class="featured-product-img" 
+                             alt="${product.name}">
+                        <div class="featured-product-info">
+                            <div class="featured-product-name">${product.name}</div>
+                            <div class="featured-product-price">${formatPrice(product.price_vnd)}</div>
+                        </div>
+                    </a>
+                `).join('');
+            } else {
+                container.innerHTML = '<p class="text-muted small">Chưa có sản phẩm nổi bật</p>';
+            }
+        })
+        .catch(err => {
+            console.error('Error loading featured products:', err);
+            document.getElementById('featured-products').innerHTML = 
+                '<p class="text-muted small">Không thể tải sản phẩm</p>';
         });
 }
 
@@ -251,11 +435,8 @@ function loadReviews() {
     fetch(`/api/catalog/products/${productId}/reviews/`)
         .then(res => res.json())
         .then(data => {
-            console.log('Reviews loaded:', data);
-            
             const reviewsList = document.getElementById('reviews-list');
-            document.getElementById('reviews-count').textContent = 
-                data.rating_stats?.total_reviews || '0';
+            document.getElementById('reviews-count').textContent = data.rating_stats?.total_reviews || '0';
             
             if (data.reviews && data.reviews.length > 0) {
                 reviewsList.innerHTML = data.reviews.map(review => `
@@ -289,20 +470,11 @@ function loadReviews() {
                         </div>
                     </div>
                 `).join('');
-                
-                // Hiển thị rating distribution
-                if (data.rating_stats) {
-                    console.log('Rating distribution:', data.rating_stats.rating_distribution);
-                }
             } else {
                 reviewsList.innerHTML = '<p class="text-center text-muted">Chưa có đánh giá nào</p>';
             }
         })
-        .catch(err => {
-            console.error('Error loading reviews:', err);
-            document.getElementById('reviews-list').innerHTML = 
-                '<p class="text-muted">Không thể tải đánh giá</p>';
-        });
+        .catch(err => console.error('Error loading reviews:', err));
 }
 
 function loadRelatedProducts(categoryId) {
@@ -336,16 +508,6 @@ function loadRelatedProducts(categoryId) {
         });
 }
 
-function updateRatingDisplay(rating) {
-    const stars = document.querySelectorAll('#product-rating .fa-star');
-    stars.forEach((star, index) => {
-        if (index < Math.floor(rating)) {
-            star.classList.add('text-secondary');
-            star.classList.remove('text-muted');
-        }
-    });
-}
-
 function setRating(rating) {
     selectedRating = rating;
     document.querySelectorAll('.rating-star').forEach((star, index) => {
@@ -376,12 +538,13 @@ function decreaseQty() {
     }
 }
 
+// ✅ SỬA ADD TO CART - DÙNG TOAST
 function addToCart() {
     const token = localStorage.getItem('token');
     
     if (!token) {
-        alert('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng');
-        window.location.href = '/login/';
+        showToast('Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng', 'error');
+        setTimeout(() => window.location.href = '/login/', 1500);
         return;
     }
     
@@ -400,12 +563,12 @@ function addToCart() {
     })
     .then(res => res.json())
     .then(data => {
-        alert(data.detail || 'Đã thêm vào giỏ hàng');
+        showToast(`Đã thêm ${qty} sản phẩm vào giỏ hàng`, 'success');
         updateCartCount();
     })
     .catch(err => {
         console.error('Error:', err);
-        alert('Có lỗi xảy ra');
+        showToast('Có lỗi xảy ra khi thêm vào giỏ hàng', 'error');
     });
 }
 
@@ -414,22 +577,21 @@ function submitReview(event) {
     
     const token = localStorage.getItem('token');
     if (!token) {
-        alert('Vui lòng đăng nhập để viết đánh giá');
+        showToast('Vui lòng đăng nhập để viết đánh giá', 'error');
         return;
     }
     
     if (selectedRating === 0) {
-        alert('Vui lòng chọn số sao');
+        showToast('Vui lòng chọn số sao', 'error');
         return;
     }
     
     const reviewText = document.getElementById('review-text').value.trim();
     if (!reviewText) {
-        alert('Vui lòng nhập nội dung đánh giá');
+        showToast('Vui lòng nhập nội dung đánh giá', 'error');
         return;
     }
     
-    // ✅ SỬA: Gọi đúng endpoint
     fetch(`/api/catalog/products/${productId}/reviews/create/`, {
         method: 'POST',
         headers: {
@@ -438,7 +600,7 @@ function submitReview(event) {
         },
         body: JSON.stringify({
             rating: selectedRating,
-            title: reviewText.substring(0, 50), // Lấy 50 ký tự đầu làm title
+            title: reviewText.substring(0, 50),
             content: reviewText
         })
     })
@@ -451,24 +613,21 @@ function submitReview(event) {
         return res.json();
     })
     .then(data => {
-        console.log('Review submitted:', data);
-        alert('✓ Cảm ơn bạn đã đánh giá sản phẩm!');
+        showToast('Cảm ơn bạn đã đánh giá sản phẩm!', 'success');
         document.getElementById('review-form').reset();
-        setRating(5); // Reset rating về 5 sao
-        loadReviews(); // Reload danh sách đánh giá
+        setRating(5);
+        loadReviews();
     })
     .catch(err => {
-        console.error('Error:', err);
-        alert('❌ ' + err.message);
+        showToast(err.message, 'error');
     });
 }
-
 
 function markReviewHelpful(reviewId) {
     const token = localStorage.getItem('token');
     
     if (!token) {
-        alert('Vui lòng đăng nhập');
+        showToast('Vui lòng đăng nhập', 'error');
         return;
     }
     
@@ -480,13 +639,9 @@ function markReviewHelpful(reviewId) {
     })
     .then(res => res.json())
     .then(data => {
-        console.log('Mark helpful:', data);
-        loadReviews(); // Reload để cập nhật helpful count
+        loadReviews();
     })
-    .catch(err => {
-        console.error('Error:', err);
-        alert('Không thể đánh dấu');
-    });
+    .catch(err => console.error('Error:', err));
 }
 
 function formatPrice(price) {
@@ -525,10 +680,9 @@ fetch('/api/catalog/categories/')
         });
     });
 
-// Initialize rating stars
+// Initialize
 setRating(5);
-
-// Load product on page load
 loadProductDetail();
+loadFeaturedProducts(); // ✅ THÊM DÒNG NÀY
 </script>
 {% endblock %}

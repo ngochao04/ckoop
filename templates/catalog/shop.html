@@ -97,9 +97,161 @@
 </div>
 <!-- Shop End -->
 
+<!-- Toast Container -->
+<div id="toast-container" style="position: fixed; top: 100px; right: 20px; z-index: 9999;"></div>
+
+<style>
+/* ✅ ĐỒNG BỘ KÍCH THƯỚC PRODUCT CARD */
+.fruite-item {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.fruite-item .fruite-img {
+    height: 220px;
+    overflow: hidden;
+    background: #f8f9fa;
+}
+
+.fruite-item .fruite-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.fruite-item .p-4 {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.fruite-item h4 {
+    min-height: 56px;
+    max-height: 56px;
+    font-size: 18px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.4;
+}
+
+.fruite-item > div > p {
+    min-height: 48px;
+    max-height: 48px;
+    font-size: 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.6;
+    color: #6c757d;
+}
+
+.fruite-item .d-flex:last-child {
+    margin-top: auto;
+}
+
+/* Toast Notification */
+.toast-notification {
+    min-width: 300px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    padding: 16px 20px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    animation: slideIn 0.3s ease-out;
+}
+
+.toast-notification.success {
+    border-left: 4px solid #28a745;
+}
+
+.toast-icon {
+    font-size: 24px;
+    margin-right: 12px;
+    color: #28a745;
+}
+
+.toast-content {
+    flex: 1;
+}
+
+.toast-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+.toast-message {
+    font-size: 13px;
+    color: #6c757d;
+    margin: 0;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 10px;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(400px);
+        opacity: 0;
+    }
+}
+</style>
+
 <script>
 let currentCategory = null;
 let currentPage = 1;
+
+// Toast notification
+function showToast(message, type = 'success') {
+    const container = document.getElementById('toast-container');
+    
+    const toast = document.createElement('div');
+    toast.className = `toast-notification ${type}`;
+    
+    toast.innerHTML = `
+        <div class="toast-icon">✓</div>
+        <div class="toast-content">
+            <div class="toast-title">Thành công!</div>
+            <p class="toast-message">${message}</p>
+        </div>
+        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    container.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-out';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
 
 // Load categories
 fetch('/api/catalog/categories/')
@@ -122,7 +274,6 @@ fetch('/api/catalog/categories/')
 
 // Load products
 function loadProducts() {
-    // LẤY SEARCH TỪ INPUT, KHÔNG PHẢI URL
     const search = document.getElementById('search-input').value.trim();
     const sort = document.getElementById('sort-select').value;
     
@@ -153,7 +304,7 @@ function loadProducts() {
         });
 }
 
-// KHỞI TẠO KHI LOAD TRANG
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     const urlParams = new URLSearchParams(window.location.search);
     const searchParam = urlParams.get('search');
@@ -209,7 +360,6 @@ function filterByCategory(categoryId) {
 }
 
 function searchProducts() {
-    // Chỉ cần gọi loadProducts, nó sẽ lấy value từ input
     loadProducts();
 }
 
@@ -240,68 +390,11 @@ function addToCart(productId) {
     })
     .then(res => res.json())
     .then(data => {
-        // CẬP NHẬT CART COUNT MÀ KHÔNG THÔNG BÁO
         updateCartCount();
-        
-        // Hiển thị badge nhỏ thay vì alert
-        showMiniNotification('✓ Đã thêm vào giỏ hàng');
+        showToast('Đã thêm vào giỏ hàng');
     })
     .catch(err => console.error('Error:', err));
 }
-
-// HÀM HIỂN THỊ THÔNG BÁO NHỎ
-function showMiniNotification(message) {
-    // Tạo element
-    const notification = document.createElement('div');
-    notification.style.cssText = `
-        position: fixed;
-        top: 100px;
-        right: 20px;
-        background: #28a745;
-        color: white;
-        padding: 15px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        z-index: 9999;
-        animation: slideIn 0.3s ease-out;
-    `;
-    notification.textContent = message;
-    
-    // Thêm vào body
-    document.body.appendChild(notification);
-    
-    // Tự động xóa sau 2 giây
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease-out';
-        setTimeout(() => notification.remove(), 300);
-    }, 2000);
-}
-
-// Thêm CSS animation
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideIn {
-        from {
-            transform: translateX(400px);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(400px);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
 
 function updateCartCount() {
     const token = localStorage.getItem('token');
